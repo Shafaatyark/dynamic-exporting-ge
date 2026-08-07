@@ -14,6 +14,14 @@ if (!appSource.includes('const CORE_VARIABLES = ["tau21", "im1", "ex12"];')) {
   throw new Error("The initial chart should contain only Home tariff, import, and export series.");
 }
 
+if (!appSource.includes('resetZoom.textContent = "Reset zoom";') || !appSource.includes('"xaxis.autorange": true')) {
+  throw new Error("Each chart should provide an explicit zoom reset control.");
+}
+
+if (!appSource.includes('%{y:.2f}')) {
+  throw new Error("Chart hover values should display exactly two decimal places.");
+}
+
 const fallbackNames = names.filter((name, index) => labels[index] === name || labels[index].startsWith("Model series "));
 if (fallbackNames.length) {
   throw new Error(`Missing economic labels for: ${fallbackNames.join(", ")}`);

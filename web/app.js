@@ -375,12 +375,23 @@ function buildChartTile(tile, tileIndex) {
 
   const actions = document.createElement("div");
   actions.className = "chart-tile-actions";
+  const resetZoom = document.createElement("button");
+  resetZoom.type = "button";
+  resetZoom.className = "secondary small-button";
+  resetZoom.textContent = "Reset zoom";
+  resetZoom.addEventListener("click", () => {
+    Plotly.relayout(plot, {
+      "xaxis.autorange": true,
+      "yaxis.autorange": true,
+      "yaxis2.autorange": true,
+    });
+  });
   const svgButton = document.createElement("button");
   svgButton.type = "button";
   svgButton.className = "secondary small-button";
   svgButton.textContent = "SVG";
   svgButton.addEventListener("click", () => downloadTileFigure(tile.id, tileIndex));
-  actions.append(svgButton);
+  actions.append(resetZoom, svgButton);
   if (state.tiles.length > 1) {
     const removeTile = document.createElement("button");
     removeTile.type = "button";
@@ -472,7 +483,7 @@ function drawTilePlot(plot, tile) {
       mode: "lines+markers",
       line: { color: COLORS[index % COLORS.length], dash: DASHES[index % DASHES.length], width: 2.2 },
       marker: { color: COLORS[index % COLORS.length], symbol: MARKERS[index % MARKERS.length], size: 5 },
-      hovertemplate: "%{meta}<br>period %{x}<br>%{y:.6g}<extra></extra>",
+      hovertemplate: "%{meta}<br>period %{x}<br>%{y:.2f}<extra></extra>",
     };
   });
   const hasRight = tile.series.some((item) => item.axis === "y2");
