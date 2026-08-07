@@ -35,6 +35,10 @@ if (!appSource.includes("while (tau21Path.length < horizon)") || !htmlSource.inc
   throw new Error("Short custom tariff paths should carry their final row through period 80.");
 }
 
+if (!htmlSource.includes("Open PowerShell in the downloaded project folder") || !htmlSource.includes("use <code>cd</code>")) {
+  throw new Error("Windows startup instructions should explain how to select the project directory.");
+}
+
 const fallbackNames = names.filter((name, index) => labels[index] === name || labels[index].startsWith("Model series "));
 if (fallbackNames.length) {
   throw new Error(`Missing economic labels for: ${fallbackNames.join(", ")}`);
