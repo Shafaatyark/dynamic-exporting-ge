@@ -2,7 +2,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { economicLabel, displayLabel } = require("../web/series-labels.js");
+const { economicLabel, displayLabel, defaultAxis } = require("../web/series-labels.js");
 
 const resultPath = path.join(__dirname, "..", "web", "data", "saved_unilateral_10.json");
 const result = JSON.parse(fs.readFileSync(resultPath, "utf8"));
@@ -21,6 +21,18 @@ if (new Set(labels).size !== labels.length) {
 names.forEach((name) => {
   if (!displayLabel(name).endsWith(`(${name})`)) {
     throw new Error(`Dropdown label does not retain the model code for ${name}.`);
+  }
+});
+
+["tau11", "tau12", "tau21", "tau22"].forEach((name) => {
+  if (defaultAxis(name) !== "y2") {
+    throw new Error(`Tariff series ${name} should default to the right axis.`);
+  }
+});
+
+["im1", "im2", "ex12", "ex21", "c1"].forEach((name) => {
+  if (defaultAxis(name) !== "y") {
+    throw new Error(`Non-tariff series ${name} should default to the left axis.`);
   }
 });
 

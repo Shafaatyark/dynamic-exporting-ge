@@ -1,6 +1,6 @@
 "use strict";
 
-const CORE_VARIABLES = ["tau21", "tau12", "c1", "l1", "y1", "im1", "ex12", "k1"];
+const CORE_VARIABLES = ["tau21", "tau12", "im1", "im2", "ex12", "ex21"];
 const COLORS = ["#0b5d5e", "#9a4f1f", "#435b8c", "#7c3f72", "#557a38", "#a23b3b", "#3b7f91", "#76532f"];
 const DASHES = ["solid", "dash", "dot", "dashdot", "longdash", "longdashdot"];
 const MARKERS = ["circle", "square", "diamond", "cross", "triangle-up", "triangle-down", "x", "star"];
@@ -47,7 +47,10 @@ const STRUCTURE_SPECS = [
 const state = {
   result: null,
   catalog: [],
-  tiles: [{ id: 1, series: CORE_VARIABLES.map((name) => ({ name, axis: "y" })) }],
+  tiles: [{ id: 1, series: CORE_VARIABLES.map((name) => ({
+    name,
+    axis: DEGE_SERIES_LABELS.defaultAxis(name),
+  })) }],
   nextTileId: 2,
   running: false,
 };
@@ -254,7 +257,10 @@ function acceptResult(result, displayMode) {
   if (!selectedSeriesNames().length) {
     state.tiles = [{
       id: 1,
-      series: CORE_VARIABLES.filter((name) => result.series[name]).map((name) => ({ name, axis: "y" })),
+      series: CORE_VARIABLES.filter((name) => result.series[name]).map((name) => ({
+        name,
+        axis: DEGE_SERIES_LABELS.defaultAxis(name),
+      })),
     }];
     state.nextTileId = 2;
   }
@@ -316,6 +322,9 @@ function renderSeriesPicker() {
       el.seriesSelect.value = previousSeries;
     } else if (matching.some((item) => item.name === "c1")) {
       el.seriesSelect.value = "c1";
+    }
+    if (el.seriesSelect.value !== previousSeries) {
+      el.axisChoice.value = DEGE_SERIES_LABELS.defaultAxis(el.seriesSelect.value);
     }
   }
 
@@ -491,7 +500,10 @@ function selectCore() {
   if (!state.result) return;
   state.tiles = [{
     id: 1,
-    series: CORE_VARIABLES.filter((name) => state.result.series[name]).map((name) => ({ name, axis: "y" })),
+    series: CORE_VARIABLES.filter((name) => state.result.series[name]).map((name) => ({
+      name,
+      axis: DEGE_SERIES_LABELS.defaultAxis(name),
+    })),
   }];
   state.nextTileId = 2;
   renderSeriesPicker();
@@ -600,6 +612,9 @@ function bindEvents() {
   el.transformMode.addEventListener("change", renderPlots);
   el.plotPeriods.addEventListener("change", renderPlots);
   el.seriesSearch.addEventListener("input", renderSeriesPicker);
+  el.seriesSelect.addEventListener("change", () => {
+    el.axisChoice.value = DEGE_SERIES_LABELS.defaultAxis(el.seriesSelect.value);
+  });
   el.selectCore.addEventListener("click", selectCore);
   el.clearSeries.addEventListener("click", () => {
     state.tiles = [{ id: 1, series: [] }];

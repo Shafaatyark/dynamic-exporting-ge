@@ -110,5 +110,9 @@
     return `${economicLabel(name)} (${name})`;
   }
 
-  return { economicLabel, displayLabel };
+  function defaultAxis(name) {
+    return /^tau[12][12]$/.test(name) ? "y2" : "y";
+  }
+
+  return { economicLabel, displayLabel, defaultAxis };
 }));
