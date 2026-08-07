@@ -1,0 +1,45 @@
+c@{co} = log(C(@{co}));
+l@{co} = log(L(@{co}));
+lp@{co} = log(Lp(@{co}));
+n@{co} = log(N(@{co}));
+pc@{co} = log(PC(@{co}));
+px@{co} = log(PI(@{co}));
+pm@{co} = log(PM(@{co}));
+mu@{co} = AdjLag(@{co});
+w@{co} = log(W(@{co}));
+r@{co} = log(R(@{co}));
+k@{co} = log(K(@{co}));
+x@{co} = log(I(@{co}));
+m@{co} = log(M(@{co}));
+ne@{co} = log(Ne(@{co}));
+vd@{co} = log(Vd1(@{co}));
+im@{co} = log(IMN(@{co}));
+t@{co} = T(@{co});
+b@{co} = B(@{co});
+pd@{co} = log(Pd(@{co}));
+bbar@{co} = B(@{co});
+y@{co} = log(YN(@{co}));
+Pi_H@{co} = Pi(@{co});
+T_rs_H@{co} = 0;
+ttL@{co} = ttL;
+ttK@{co} = ttK;
+s@{co} = sI;
+@#for co1 in countries
+    %tau@{co}@{co1} = log(1);
+    @#if co!=co1
+        kap0@{co}@{co1} = log(kap0ij(@{co},@{co1}));
+        kapH@{co}@{co1} = log(kapHij(@{co},@{co1}));
+        kapL@{co}@{co1} = log(kapLij(@{co},@{co1}));
+        vx0@{co}@{co1} = log(Vx0(@{co},@{co1}));
+        dvH@{co}@{co1} = log(dVHij(@{co},@{co1}));
+        dvL@{co}@{co1} = log(dVLij(@{co},@{co1}));
+        pc@{co}@{co1} = log(Pcij(@{co},@{co1}));
+        px@{co}@{co1} = log(Pxij(@{co},@{co1}));
+        pm@{co}@{co1} = log(Pmij(@{co},@{co1}));
+        n@{co}@{co1} = log(Nij(@{co},@{co1}));
+        nH@{co}@{co1} = log(NHij(@{co},@{co1}));
+        nL@{co}@{co1} = log(NLij(@{co},@{co1}));
+        n0@{co}@{co1} = log(N(@{co})-Nij(@{co},@{co1}));
+        ex@{co}@{co1} = log(IMij(@{co1},@{co}));
+    @#endif
+@#endfor

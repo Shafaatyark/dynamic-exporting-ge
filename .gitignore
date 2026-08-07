@@ -1,0 +1,39 @@
+# Operating-system and editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.asv
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local API state (defaults are outside the repository)
+api/jobs/
+api/cache/
+
+# MATLAB, Octave, and Dynare generated files
+*.mat
+*.mex*
+*.oct
+*.log
+*.jnl
+*.tmp
+*.bak
+model/dege_macros.txt
+model/*-macroexp.mod
+model/dege_job.mod
+model/dege_job/
+model/+dege_job/
+model/Output/
+
+# Test and coverage output
+.coverage
+coverage.xml
+htmlcov/
