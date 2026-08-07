@@ -1,11 +1,13 @@
 # Architecture
 
-The browser is static and the economics stay in the model runtime.
+The economics stay in the MATLAB/Octave and Dynare runtime. Saved results can be viewed on GitHub Pages; new simulations are preferably solved on the user's own computer.
 
 ```text
 GitHub Pages frontend
-  ├─ loads saved_unilateral_10.json or saved_bilateral_10.json
-  └─ optionally submits a validated request to FastAPI
+  └─ loads saved_unilateral_10.json or saved_bilateral_10.json
+
+Local browser at 127.0.0.1
+  └─ submits a validated request to local FastAPI
        └─ api/runner.py creates an isolated temporary job
             └─ Octave or MATLAB calls model/dege_run_from_json.m
                  ├─ dege_01_initialize_model.m
@@ -27,6 +29,8 @@ GitHub Pages frontend
                            ├─ dege_initial_values.mod
                            └─ dege_terminal_values.mod
 ```
+
+`start_windows.ps1` and `start_mac_linux.sh` detect the local runtime, create an isolated Python environment when needed, and bind the combined frontend/API service only to `127.0.0.1`. The local workflow does not transmit model requests or results to GitHub Pages.
 
 ## Stability boundary
 

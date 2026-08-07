@@ -18,7 +18,57 @@ The GitHub Pages site loads two genuine, precomputed model results:
 - free trade to a 10% unilateral Home tariff;
 - free trade to a 10% bilateral tariff.
 
-These files are labeled **saved model result**. They contain 132 complete finite model series and are not recalculated in the browser. A **live simulation** is produced only when the interface reaches a separately deployed API with Octave or MATLAB plus Dynare. Failure never triggers synthetic replacement data.
+These files are labeled **saved model result**. They contain 132 complete finite model series and are not recalculated in the browser. A **live simulation** is produced only when the interface reaches a local or separately deployed API with Octave or MATLAB plus Dynare. Failure never triggers synthetic replacement data.
+
+## Run new simulations locally
+
+The recommended setup uses each researcher's own MATLAB and Dynare installation. The local service binds to `127.0.0.1`, serves the website and API from one address, and does not send model inputs or solved results to GitHub Pages.
+
+Requirements:
+
+- Python 3.10 or newer;
+- MATLAB with `jsondecode` and `jsonencode`;
+- Dynare (version 6.4 is the currently validated release).
+
+Clone the repository, then use the launcher for your operating system.
+
+Windows PowerShell:
+
+```powershell
+git clone https://github.com/Shafaatyark/dynamic-exporting-ge.git
+cd dynamic-exporting-ge
+.\start_windows.ps1
+```
+
+macOS or Linux:
+
+```bash
+git clone https://github.com/Shafaatyark/dynamic-exporting-ge.git
+cd dynamic-exporting-ge
+./start_mac_linux.sh
+```
+
+The launcher:
+
+1. detects MATLAB and Dynare, preferring the validated Dynare 6.4 when several versions are installed;
+2. creates an isolated `.venv` and installs the small Python API dependency set when needed;
+3. sets portable environment variables for this session only;
+4. starts the simulator at `http://127.0.0.1:8000`; and
+5. opens the local website in the default browser.
+
+Run installation checks without starting the server:
+
+```powershell
+.\start_windows.ps1 -CheckOnly
+```
+
+Run the genuine 10% unilateral example before starting the server:
+
+```powershell
+.\start_windows.ps1 -SmokeTest
+```
+
+The macOS/Linux equivalents are `--check-only` and `--smoke-test`. If PowerShell blocks a downloaded script, use `powershell -ExecutionPolicy Bypass -File .\start_windows.ps1`. The downloadable request is [`web/data/example_request.json`](web/data/example_request.json).
 
 ## Run the static frontend locally
 
@@ -44,7 +94,7 @@ $env:DEGE_OCTAVE_EXE = "C:\path\to\octave-cli.exe"  # optional if on PATH
 
 The API prefers Octave in `auto` mode and falls back to MATLAB. The bridge requires Octave versions that provide `jsondecode` and `jsonencode`.
 
-## Run the optional backend
+## Run the local backend manually
 
 Create an isolated Python 3.10+ environment and start FastAPI:
 
@@ -55,7 +105,7 @@ python -m pip install -r api\requirements.txt
 python -m uvicorn api.app:app --host 127.0.0.1 --port 8000
 ```
 
-Then open `http://127.0.0.1:8000` or enter that URL in the frontend's **API URL** box. Optional configuration:
+Then open `http://127.0.0.1:8000`. FastAPI serves both the frontend and API at that address. Optional configuration:
 
 | Variable | Purpose | Default |
 |---|---|---|

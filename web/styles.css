@@ -135,6 +135,99 @@ textarea {
   color: var(--danger);
 }
 
+.local-setup {
+  margin: 14px 18px 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fbfcfa;
+  box-shadow: 0 5px 18px rgba(31, 41, 51, 0.05);
+}
+
+.local-setup summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.local-setup summary small {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.local-setup-content {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 16px 14px;
+  border-top: 1px solid var(--line);
+}
+
+.local-step {
+  padding-top: 13px;
+}
+
+.local-step strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 15px;
+}
+
+.local-step p,
+.privacy-note {
+  margin: 5px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.local-step code {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.local-setup-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.secondary-link {
+  background: #fff;
+  color: var(--accent);
+}
+
+.text-link {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.privacy-note {
+  grid-column: 1 / -1;
+  padding: 9px 11px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 12px;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: minmax(310px, 380px) minmax(0, 1fr);
@@ -502,6 +595,10 @@ h2 {
     grid-template-columns: 1fr 1fr;
   }
 
+  .local-setup-content {
+    grid-template-columns: 1fr;
+  }
+
   .series-builder {
     grid-template-columns: 1fr 1fr;
   }
@@ -519,6 +616,16 @@ h2 {
 
   .topbar {
     padding: 14px;
+  }
+
+  .local-setup {
+    margin: 10px 10px 0;
+  }
+
+  .local-setup summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
   }
 
   .two-col,

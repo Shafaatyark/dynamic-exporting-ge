@@ -39,7 +39,7 @@ This manifest records the exact source material approved for migration from the 
 
 ## Public-only files
 
-These 17 files were authored for the new repository rather than copied from the source:
+These 23 files were authored for the new repository rather than copied from the source:
 
 | Public path | Purpose |
 |---|---|
@@ -52,16 +52,22 @@ These 17 files were authored for the new repository rather than copied from the 
 | `model/dege_configure_dynare.m` | Environment-variable-based Dynare discovery |
 | `scripts/validate_saved_examples.py` | Saved-result completeness and tariff audit |
 | `scripts/compare_reference_results.py` | All-series numerical comparison utility |
+| `scripts/check_installation.py` | Read-only MATLAB, Octave, and Dynare discovery |
+| `scripts/run_example.py` | Genuine local-solver smoke test using the public request |
+| `start_windows.ps1` | Windows local-only MATLAB/Dynare launcher |
+| `start_mac_linux.sh` | macOS/Linux local-only MATLAB/Dynare launcher |
 | `tests/test_api.py` | Saved/API and custom-path boundary tests |
 | `tests/test_frontend_labels.js` | Complete economic-label and dropdown-label audit |
+| `tests/test_local_setup.py` | Installation discovery and example-request tests |
 | `web/series-labels.js` | Human-readable economic names for every solver series |
+| `web/data/example_request.json` | Downloadable genuine unilateral simulation request |
 | `docs/architecture.md` | Dependency graph and runtime boundary |
 | `docs/backend-deployment.md` | Optional live-solver service deployment |
 | `docs/disclosure-manifest.md` | This realized disclosure record |
 | `docs/model-api.md` | Request, job, and result contract |
 | `docs/validation.md` | Numerical and interface validation record |
 
-Together with the 30 approved mappings above, the realized public tree contains 47 files. The two additional public-only files were added after initial publication for the approved economic-name and chart-tile interface revision.
+Together with the 30 approved mappings above, the realized public tree contains 53 files. Eight public-only files were added after initial publication for the approved economic-name/chart-tile revision and the local MATLAB/Dynare launch workflow.
 
 ## Intentionally disclosed model content
 

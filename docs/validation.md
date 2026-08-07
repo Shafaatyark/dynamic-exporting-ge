@@ -29,6 +29,6 @@ The previously copied sample JSON did not match this fresh source run and was th
 
 Octave/Dynare cross-engine certification remains pending because GNU Octave is not installed in the current validation environment. Before release, run both scenarios under the documented supported Octave/Dynare combination and record versions and any numerical differences here.
 
-The direct MATLAB bridge and the FastAPI validation/metadata/saved endpoints were tested separately. An end-to-end FastAPI worker launch remains to be certified outside the current managed desktop environment: MATLAB R2026a reported a startup-level filesystem inconsistency when launched as a nested Python subprocess here, while the identical `matlab -batch` bridge command completed normally when launched directly. Solver failures remain explicit and never fall back to saved or synthetic data.
+On 2026-08-07, the downloadable 80-period unilateral request was also run through `scripts/run_example.py`, exercising the same nested Python worker command used by FastAPI. Automatic discovery selected MATLAB R2026a and Dynare 6.4. The solve completed successfully in about 83 seconds and returned 82 observations for all 132 model series. Solver failures remain explicit and never fall back to saved or synthetic data.
 
 No test or runtime path substitutes synthetic output after failure.

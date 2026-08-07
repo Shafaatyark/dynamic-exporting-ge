@@ -34,3 +34,18 @@ jobs:
           node --check web/series-labels.js
           node --check web/app.js
           node tests/test_frontend_labels.js
+      - name: Check local launcher syntax
+        shell: pwsh
+        run: |
+          sh -n start_mac_linux.sh
+          $parseTokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path "start_windows.ps1"),
+            [ref]$parseTokens,
+            [ref]$parseErrors
+          ) | Out-Null
+          if ($parseErrors.Count) {
+            $parseErrors | Format-List
+            exit 1
+          }

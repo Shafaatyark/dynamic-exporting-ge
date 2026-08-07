@@ -1,0 +1,13 @@
+{
+  "scenario": {
+    "preset": "unilateral_10",
+    "horizon": 80,
+    "initialTau21": 1.0,
+    "initialTau12": 1.0,
+    "targetRatePercent": 10.0,
+    "pathProfile": "step",
+    "rebateType": "lumpsum"
+  },
+  "parameters": {},
+  "variables": ["*"]
+}

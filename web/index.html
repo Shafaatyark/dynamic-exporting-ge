@@ -21,17 +21,44 @@
         <div class="status-block">
           <span id="runStatus" class="status-pill">Loading saved result</span>
           <label class="api-label">
-            API URL
+            Local solver URL
             <input
               id="apiBase"
               type="url"
-              placeholder="Optional live-solver API"
+              placeholder="http://127.0.0.1:8000"
               title="http://127.0.0.1:8000"
               autocomplete="off"
             />
           </label>
         </div>
       </header>
+
+      <details id="localSetup" class="local-setup">
+        <summary>
+          <span>Run your own simulations locally</span>
+          <small>Use your MATLAB and Dynare installation</small>
+        </summary>
+        <div class="local-setup-content">
+          <div class="local-step">
+            <strong>1. Get the project</strong>
+            <p>Clone the repository or download the current release to your computer.</p>
+          </div>
+          <div class="local-step">
+            <strong>2. Install Dynare</strong>
+            <p>The launcher finds MATLAB and Dynare automatically. Dynare 6.4 is the currently validated version.</p>
+          </div>
+          <div class="local-step">
+            <strong>3. Start the simulator</strong>
+            <p><code>.\start_windows.ps1</code> on Windows or <code>./start_mac_linux.sh</code> on macOS/Linux.</p>
+          </div>
+          <div class="local-setup-actions">
+            <a class="button-link" href="https://github.com/Shafaatyark/dynamic-exporting-ge/archive/refs/heads/main.zip">Download project</a>
+            <a class="button-link secondary-link" href="./data/example_request.json" download>Example request</a>
+            <a class="text-link" href="https://github.com/Shafaatyark/dynamic-exporting-ge#run-new-simulations-locally">Full setup instructions</a>
+          </div>
+          <p class="privacy-note">The local service listens only on your computer. Model inputs and solved results are not sent to this website.</p>
+        </div>
+      </details>
 
       <main class="workspace">
         <aside class="control-panel" aria-label="Simulation controls">
