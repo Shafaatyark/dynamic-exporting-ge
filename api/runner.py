@@ -23,6 +23,7 @@ from typing import Any, Callable
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MODEL_ROOT = REPO_ROOT / "model"
 SAVED_RESULTS_ROOT = REPO_ROOT / "web" / "data"
+SOLUTION_HORIZON = 80
 ProgressCallback = Callable[[str, str], None]
 
 
@@ -204,7 +205,7 @@ REBATE_OPTIONS = [
 ]
 
 
-CORE_VARIABLES = ["tau21", "tau12", "c1", "l1", "y1", "im1", "ex12", "k1"]
+CORE_VARIABLES = ["tau21", "im1", "ex12"]
 VARIABLE_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 
 
@@ -237,7 +238,7 @@ def metadata() -> dict[str, Any]:
         "defaultVariables": CORE_VARIABLES,
         "scenarioPresets": SCENARIO_PRESETS,
         "rebateOptions": REBATE_OPTIONS,
-        "limits": {"minimumHorizon": 1, "maximumHorizon": 600},
+        "limits": {"solutionHorizon": SOLUTION_HORIZON},
         "notes": {
             "saved": "Saved examples are model results, not newly solved simulations.",
             "live": "Fresh simulations require the optional Octave/Dynare or MATLAB/Dynare API.",
@@ -259,7 +260,9 @@ def normalize_request(payload: dict[str, Any] | None) -> dict[str, Any]:
     if preset not in {item["id"] for item in SCENARIO_PRESETS}:
         raise RunnerError(f"Unknown scenario preset: {preset}")
 
-    horizon = _int_in_range(scenario.get("horizon", 80), "horizon", 1, 600)
+    horizon = _int_in_range(scenario.get("horizon", SOLUTION_HORIZON), "horizon", 1, 600)
+    if horizon != SOLUTION_HORIZON:
+        raise RunnerError(f"horizon is fixed at {SOLUTION_HORIZON} transition periods.")
     initial_tau21 = _positive_float(scenario.get("initialTau21", 1.0), "initialTau21")
     initial_tau12 = _positive_float(scenario.get("initialTau12", 1.0), "initialTau12")
     target_rate = _finite_float(scenario.get("targetRatePercent", 10.0), "targetRatePercent")
@@ -309,7 +312,9 @@ def normalize_request(payload: dict[str, Any] | None) -> dict[str, Any]:
 
 def build_tariff_paths(scenario: dict[str, Any]) -> tuple[list[float], list[float], str]:
     preset = str(scenario.get("preset", "unilateral_10"))
-    horizon = _int_in_range(scenario.get("horizon", 80), "horizon", 1, 600)
+    horizon = _int_in_range(scenario.get("horizon", SOLUTION_HORIZON), "horizon", 1, 600)
+    if horizon != SOLUTION_HORIZON:
+        raise RunnerError(f"horizon is fixed at {SOLUTION_HORIZON} transition periods.")
     initial_tau21 = _positive_float(scenario.get("initialTau21", 1.0), "initialTau21")
     initial_tau12 = _positive_float(scenario.get("initialTau12", 1.0), "initialTau12")
     target_rate = _finite_float(scenario.get("targetRatePercent", 10.0), "targetRatePercent")

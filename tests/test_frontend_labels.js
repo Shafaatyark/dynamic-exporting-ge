@@ -7,6 +7,7 @@ const { economicLabel, displayLabel, defaultAxis } = require("../web/series-labe
 const resultPath = path.join(__dirname, "..", "web", "data", "saved_unilateral_10.json");
 const result = JSON.parse(fs.readFileSync(resultPath, "utf8"));
 const appSource = fs.readFileSync(path.join(__dirname, "..", "web", "app.js"), "utf8");
+const htmlSource = fs.readFileSync(path.join(__dirname, "..", "web", "index.html"), "utf8");
 const names = result.variables.map((item) => item.name);
 const labels = names.map(economicLabel);
 
@@ -20,6 +21,14 @@ if (!appSource.includes('resetZoom.textContent = "Reset zoom";') || !appSource.i
 
 if (!appSource.includes('%{y:.2f}')) {
   throw new Error("Chart hover values should display exactly two decimal places.");
+}
+
+if (!appSource.includes("const SOLUTION_HORIZON = 80;") || htmlSource.includes('id="horizon"')) {
+  throw new Error("The solver horizon should be fixed and absent from user controls.");
+}
+
+if (!htmlSource.includes("Periods plotted") || !htmlSource.includes('id="plotPeriods"')) {
+  throw new Error("The plot area should provide an independent period-range control.");
 }
 
 const fallbackNames = names.filter((name, index) => labels[index] === name || labels[index].startsWith("Model series "));

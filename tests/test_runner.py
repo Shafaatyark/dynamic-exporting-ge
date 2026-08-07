@@ -12,6 +12,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from api.runner import (  # noqa: E402
     RunnerError,
+    SOLUTION_HORIZON,
     load_saved_result,
     metadata,
     model_fingerprint,
@@ -23,32 +24,40 @@ from api.runner import (  # noqa: E402
 
 class RequestValidationTests(unittest.TestCase):
     def test_unilateral_preset_constructs_home_path_only(self):
-        request = normalize_request({"scenario": {"preset": "unilateral_10", "horizon": 3}})
-        self.assertEqual(request["tariffPaths"]["tau21"], [1.1, 1.1, 1.1])
-        self.assertEqual(request["tariffPaths"]["tau12"], [1.0, 1.0, 1.0])
+        request = normalize_request({"scenario": {"preset": "unilateral_10"}})
+        self.assertEqual(request["tariffPaths"]["tau21"], [1.1] * SOLUTION_HORIZON)
+        self.assertEqual(request["tariffPaths"]["tau12"], [1.0] * SOLUTION_HORIZON)
         self.assertEqual(request["scenario"]["tariffScope"], "unilateral")
 
     def test_bilateral_preset_constructs_both_paths(self):
-        request = normalize_request({"scenario": {"preset": "bilateral_10", "horizon": 2}})
-        self.assertEqual(request["tariffPaths"]["tau21"], [1.1, 1.1])
-        self.assertEqual(request["tariffPaths"]["tau12"], [1.1, 1.1])
+        request = normalize_request({"scenario": {"preset": "bilateral_10"}})
+        self.assertEqual(request["tariffPaths"]["tau21"], [1.1] * SOLUTION_HORIZON)
+        self.assertEqual(request["tariffPaths"]["tau12"], [1.1] * SOLUTION_HORIZON)
 
     def test_custom_paths_are_preserved_exactly(self):
+        tau21_path = [1.0 + index / 1000 for index in range(SOLUTION_HORIZON)]
+        tau12_path = [1.0 + index / 2000 for index in range(SOLUTION_HORIZON)]
         request = normalize_request({"scenario": {
-            "preset": "custom_path", "horizon": 3,
-            "tau21Path": [1.0, 1.04, 1.08], "tau12Path": [1.0, 1.01, 1.02],
+            "preset": "custom_path",
+            "tau21Path": tau21_path, "tau12Path": tau12_path,
         }})
-        self.assertEqual(request["tariffPaths"]["tau21"], [1.0, 1.04, 1.08])
-        self.assertEqual(request["tariffPaths"]["tau12"], [1.0, 1.01, 1.02])
+        self.assertEqual(request["tariffPaths"]["tau21"], tau21_path)
+        self.assertEqual(request["tariffPaths"]["tau12"], tau12_path)
+
+    def test_solution_horizon_is_fixed(self):
+        with self.assertRaisesRegex(RunnerError, "fixed at 80"):
+            normalize_request({"scenario": {"horizon": 3}})
+        self.assertEqual(metadata()["limits"], {"solutionHorizon": SOLUTION_HORIZON})
+        self.assertEqual(metadata()["defaultVariables"], ["tau21", "im1", "ex12"])
 
     def test_no_free_trade_transition_preset_exists(self):
         with self.assertRaises(RunnerError):
             normalize_request({"scenario": {"preset": "baseline"}})
 
     def test_custom_path_length_is_exact(self):
-        with self.assertRaisesRegex(RunnerError, "exactly 3"):
+        with self.assertRaisesRegex(RunnerError, "exactly 80"):
             normalize_request({"scenario": {
-                "preset": "custom_path", "horizon": 3,
+                "preset": "custom_path",
                 "tau21Path": [1.0], "tau12Path": [1.0],
             }})
 
@@ -61,8 +70,8 @@ class RequestValidationTests(unittest.TestCase):
             normalize_request({"parameters": {"Xshare": 0.4}})
 
     def test_all_series_request_serializes_stably(self):
-        left = normalize_request({"scenario": {"horizon": 5}, "variables": ["*"]})
-        right = normalize_request({"variables": ["*"], "scenario": {"horizon": 5}})
+        left = normalize_request({"scenario": {"horizon": SOLUTION_HORIZON}, "variables": ["*"]})
+        right = normalize_request({"variables": ["*"], "scenario": {"horizon": SOLUTION_HORIZON}})
         fingerprint = model_fingerprint()
         self.assertEqual(request_cache_key(left, fingerprint), request_cache_key(right, fingerprint))
         json.dumps(left, allow_nan=False)

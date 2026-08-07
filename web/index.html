@@ -72,16 +72,10 @@
                 <option value="custom_path">Custom tariff paths</option>
               </select>
             </label>
-            <div class="two-col">
-              <label>
-                Transition periods
-                <input id="horizon" type="number" min="1" max="600" step="1" value="80" />
-              </label>
-              <label>
-                Target tariff rate (%)
-                <input id="targetRate" type="number" step="0.1" value="10" />
-              </label>
-            </div>
+            <label>
+              Target tariff rate (%)
+              <input id="targetRate" type="number" step="0.1" value="10" />
+            </label>
             <div class="two-col">
               <label>
                 Initial gross tariff (τ₂₁)
@@ -112,7 +106,7 @@
               </label>
             </div>
             <label id="customPathWrap" class="hidden">
-              Custom gross tariff paths
+              Custom gross tariff paths (80 transition periods)
               <textarea
                 id="customPath"
                 rows="5"
@@ -151,10 +145,6 @@
                   <option value="rate_percent">Tariff rate / percentage points</option>
                   <option value="raw">Raw Dynare value</option>
                 </select>
-              </label>
-              <label class="compact-control">
-                Periods shown
-                <input id="plotPeriods" type="number" min="1" max="602" step="1" value="80" />
               </label>
             </div>
             <div class="run-tools">
@@ -204,6 +194,10 @@
                 <p>Choose a series above, then add it to an existing chart or a new tile.</p>
               </div>
               <div class="selector-actions">
+                <label class="compact-control">
+                  Periods plotted
+                  <input id="plotPeriods" type="number" min="1" max="82" step="1" value="80" />
+                </label>
                 <button id="selectCore" class="secondary" type="button">Show Home trade &amp; tariff</button>
                 <button id="clearSeries" class="secondary" type="button">Clear charts</button>
               </div>

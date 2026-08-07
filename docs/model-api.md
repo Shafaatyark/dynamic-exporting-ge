@@ -23,7 +23,7 @@
 }
 ```
 
-Presets are `unilateral_10`, `bilateral_10`, and `custom_path`. There is intentionally no free-trade transition preset. A custom request replaces the target/profile fields with `tau21Path` and `tau12Path`, each containing exactly `horizon` positive gross tariffs.
+Presets are `unilateral_10`, `bilateral_10`, and `custom_path`. There is intentionally no free-trade transition preset. The solution horizon is fixed at 80 transition periods. A custom request replaces the target/profile fields with `tau21Path` and `tau12Path`, each containing exactly 80 positive gross tariffs.
 
 `rebateType` accepts `lumpsum`, `invsub`, `labtax`, or `captax`. Categorical model settings accept only values returned by `GET /api/metadata`.
 

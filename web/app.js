@@ -1,5 +1,6 @@
 "use strict";
 
+const SOLUTION_HORIZON = 80;
 const CORE_VARIABLES = ["tau21", "im1", "ex12"];
 const COLORS = ["#0b5d5e", "#9a4f1f", "#435b8c", "#7c3f72", "#557a38", "#a23b3b", "#3b7f91", "#76532f"];
 const DASHES = ["solid", "dash", "dot", "dashdot", "longdash", "longdashdot"];
@@ -56,7 +57,7 @@ const state = {
 };
 
 const el = Object.fromEntries([
-  "runStatus", "apiBase", "scenarioPreset", "horizon", "targetRate", "initialTau21",
+  "runStatus", "apiBase", "scenarioPreset", "targetRate", "initialTau21",
   "initialTau12", "pathProfile", "rebateType", "customPathWrap", "customPath",
   "parameterGrid", "structureGrid", "resetParams", "transformMode", "plotPeriods",
   "seriesSearch", "seriesSelect", "axisChoice", "tileChoice", "addSeries",
@@ -142,20 +143,16 @@ function parseCustomPaths(horizon) {
 }
 
 function buildRequest() {
-  const horizon = Number(el.horizon.value);
-  if (!Number.isInteger(horizon) || horizon < 1 || horizon > 600) {
-    throw new Error("Transition periods must be an integer from 1 to 600.");
-  }
   const scenario = {
     preset: el.scenarioPreset.value,
-    horizon,
+    horizon: SOLUTION_HORIZON,
     targetRatePercent: Number(el.targetRate.value),
     initialTau21: Number(el.initialTau21.value),
     initialTau12: Number(el.initialTau12.value),
     pathProfile: el.pathProfile.value,
     rebateType: el.rebateType.value,
   };
-  if (scenario.preset === "custom_path") Object.assign(scenario, parseCustomPaths(horizon));
+  if (scenario.preset === "custom_path") Object.assign(scenario, parseCustomPaths(SOLUTION_HORIZON));
   return { scenario, parameters: collectParameters(), variables: ["*"] };
 }
 
