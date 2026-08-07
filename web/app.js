@@ -1,6 +1,6 @@
 "use strict";
 
-const CORE_VARIABLES = ["tau21", "tau12", "im1", "im2", "ex12", "ex21"];
+const CORE_VARIABLES = ["tau21", "im1", "ex12"];
 const COLORS = ["#0b5d5e", "#9a4f1f", "#435b8c", "#7c3f72", "#557a38", "#a23b3b", "#3b7f91", "#76532f"];
 const DASHES = ["solid", "dash", "dot", "dashdot", "longdash", "longdashdot"];
 const MARKERS = ["circle", "square", "diamond", "cross", "triangle-up", "triangle-down", "x", "star"];

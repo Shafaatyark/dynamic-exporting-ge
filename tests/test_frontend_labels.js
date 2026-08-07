@@ -6,8 +6,13 @@ const { economicLabel, displayLabel, defaultAxis } = require("../web/series-labe
 
 const resultPath = path.join(__dirname, "..", "web", "data", "saved_unilateral_10.json");
 const result = JSON.parse(fs.readFileSync(resultPath, "utf8"));
+const appSource = fs.readFileSync(path.join(__dirname, "..", "web", "app.js"), "utf8");
 const names = result.variables.map((item) => item.name);
 const labels = names.map(economicLabel);
+
+if (!appSource.includes('const CORE_VARIABLES = ["tau21", "im1", "ex12"];')) {
+  throw new Error("The initial chart should contain only Home tariff, import, and export series.");
+}
 
 const fallbackNames = names.filter((name, index) => labels[index] === name || labels[index].startsWith("Model series "));
 if (fallbackNames.length) {
