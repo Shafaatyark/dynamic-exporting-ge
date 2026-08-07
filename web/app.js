@@ -136,8 +136,15 @@ function parseCustomPaths(horizon) {
     tau21Path.push(values[0]);
     tau12Path.push(values[1]);
   });
-  if (rows.length !== horizon) {
-    throw new Error(`Custom paths require exactly ${horizon} data rows (one per transition period).`);
+  if (!rows.length) {
+    throw new Error("Custom paths require at least one data row.");
+  }
+  if (rows.length > horizon) {
+    throw new Error(`Custom paths allow at most ${horizon} data rows.`);
+  }
+  while (tau21Path.length < horizon) {
+    tau21Path.push(tau21Path[tau21Path.length - 1]);
+    tau12Path.push(tau12Path[tau12Path.length - 1]);
   }
   return { tau21Path, tau12Path };
 }

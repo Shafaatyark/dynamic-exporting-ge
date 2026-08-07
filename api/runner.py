@@ -331,8 +331,8 @@ def build_tariff_paths(scenario: dict[str, Any]) -> tuple[list[float], list[floa
         tau12 = _profile_path(initial_tau12, target_tau, horizon, scenario.get("pathProfile", "step"))
         scope = "bilateral"
     elif preset == "custom_path":
-        tau21 = _exact_path(scenario.get("tau21Path"), horizon, "tau21Path")
-        tau12 = _exact_path(scenario.get("tau12Path"), horizon, "tau12Path")
+        tau21 = _carry_forward_path(scenario.get("tau21Path"), horizon, "tau21Path")
+        tau12 = _carry_forward_path(scenario.get("tau12Path"), horizon, "tau12Path")
         scope = "bilateral" if any(abs(x - initial_tau12) > 1e-12 for x in tau12) else "unilateral"
     else:
         raise RunnerError(f"Unknown scenario preset: {preset}")
@@ -612,12 +612,13 @@ def _profile_path(initial: float, target: float, horizon: int, profile: Any) -> 
     return [target] * horizon
 
 
-def _exact_path(value: Any, horizon: int, field_name: str) -> list[float]:
+def _carry_forward_path(value: Any, horizon: int, field_name: str) -> list[float]:
     if not isinstance(value, list) or not value:
         raise RunnerError(f"{field_name} must be a nonempty list for custom paths.")
     path = [_positive_float(item, field_name) for item in value]
-    if len(path) != horizon:
-        raise RunnerError(f"{field_name} must contain exactly {horizon} values.")
+    if len(path) > horizon:
+        raise RunnerError(f"{field_name} must contain at most {horizon} values.")
+    path.extend([path[-1]] * (horizon - len(path)))
     return path
 
 

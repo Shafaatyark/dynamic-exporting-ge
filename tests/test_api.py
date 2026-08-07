@@ -20,8 +20,8 @@ class ApiBoundaryTests(unittest.TestCase):
         self.assertEqual(len(result["series"]), 132)
 
     def test_custom_paths_reach_async_worker_without_loss(self):
-        tau21_path = [1.0 + index / 1000 for index in range(80)]
-        tau12_path = [1.0] * 80
+        tau21_path = [1.0, 1.05, 1.1]
+        tau12_path = [1.0]
         payload = {
             "scenario": {
                 "preset": "custom_path",
@@ -34,6 +34,7 @@ class ApiBoundaryTests(unittest.TestCase):
             response = api_module.create_job(payload)
         submitted_payload = submit.call_args.args[2]
         self.assertEqual(submitted_payload["scenario"]["tau21Path"], tau21_path)
+        self.assertEqual(submitted_payload["scenario"]["tau12Path"], tau12_path)
         self.assertEqual(response["status"], "queued")
 
 

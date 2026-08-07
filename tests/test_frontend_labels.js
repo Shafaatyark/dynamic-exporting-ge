@@ -31,6 +31,10 @@ if (!htmlSource.includes("Periods plotted") || !htmlSource.includes('id="plotPer
   throw new Error("The plot area should provide an independent period-range control.");
 }
 
+if (!appSource.includes("while (tau21Path.length < horizon)") || !htmlSource.includes("last row continues through period 80")) {
+  throw new Error("Short custom tariff paths should carry their final row through period 80.");
+}
+
 const fallbackNames = names.filter((name, index) => labels[index] === name || labels[index].startsWith("Model series "));
 if (fallbackNames.length) {
   throw new Error(`Missing economic labels for: ${fallbackNames.join(", ")}`);

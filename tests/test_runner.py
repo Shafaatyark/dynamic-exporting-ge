@@ -54,11 +54,20 @@ class RequestValidationTests(unittest.TestCase):
         with self.assertRaises(RunnerError):
             normalize_request({"scenario": {"preset": "baseline"}})
 
-    def test_custom_path_length_is_exact(self):
-        with self.assertRaisesRegex(RunnerError, "exactly 80"):
+    def test_custom_path_carries_final_value_forward(self):
+        request = normalize_request({"scenario": {
+            "preset": "custom_path",
+            "tau21Path": [1.0, 1.05, 1.1], "tau12Path": [1.0],
+        }})
+        self.assertEqual(request["tariffPaths"]["tau21"][:3], [1.0, 1.05, 1.1])
+        self.assertEqual(request["tariffPaths"]["tau21"][3:], [1.1] * 77)
+        self.assertEqual(request["tariffPaths"]["tau12"], [1.0] * SOLUTION_HORIZON)
+
+    def test_custom_path_cannot_exceed_solution_horizon(self):
+        with self.assertRaisesRegex(RunnerError, "at most 80"):
             normalize_request({"scenario": {
                 "preset": "custom_path",
-                "tau21Path": [1.0], "tau12Path": [1.0],
+                "tau21Path": [1.0] * 81, "tau12Path": [1.0],
             }})
 
     def test_categorical_switches_are_restricted(self):
