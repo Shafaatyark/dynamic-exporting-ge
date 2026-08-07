@@ -45,7 +45,7 @@ The result includes:
 - `series`, keyed by exact Dynare names;
 - `raw`, `level`, `log_change`, `percent_change`, and `rate_percent` arrays for each series;
 - summary `metrics`, prescribed `tariffPaths`, and `missingVariables`;
-- `mode`, runtime `engine`, model fingerprint, and cache status for live solves.
+- `mode`, runtime `engine`, `dynareVersion`, model fingerprint, and cache status for live solves.
 
 The runner rejects missing variables, mismatched dimensions, and non-finite values. Welfare-equivalent metrics are reported only for the preference specification for which the source formula is defined.
 

@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 import platform
+import re
 import shutil
 import sys
 from dataclasses import asdict, dataclass
@@ -15,7 +16,7 @@ from pathlib import Path
 from typing import Iterable
 
 
-CERTIFIED_DYNARE_VERSION = "6.4"
+MINIMUM_DYNARE_VERSION = "7.1"
 
 
 @dataclass(frozen=True)
@@ -44,15 +45,16 @@ def _first_dynare_dir(candidates: Iterable[tuple[str, str]]) -> Discovery:
     if not existing:
         return Discovery(False, None, "not found", certified=False)
 
-    certified = [item for item in existing if _version_from_dynare_path(item[0]) == CERTIFIED_DYNARE_VERSION]
-    path, source = certified[0] if certified else existing[0]
+    supported = [item for item in existing if _is_supported_dynare(_version_from_dynare_path(item[0]))]
+    pool = supported or existing
+    path, source = max(pool, key=lambda item: _version_key(_version_from_dynare_path(item[0])))
     version = _version_from_dynare_path(path)
     return Discovery(
         True,
         str(path),
         source,
         version=version,
-        certified=version == CERTIFIED_DYNARE_VERSION,
+        certified=_is_supported_dynare(version),
     )
 
 
@@ -60,7 +62,20 @@ def _version_from_dynare_path(path: Path) -> str | None:
     for part in reversed(path.parts):
         if part and part[0].isdigit() and any(character == "." for character in part):
             return part
+    version_file = path / "dynare_version.m"
+    if version_file.is_file():
+        match = re.search(r"v\s*=\s*['\"]([^'\"]+)['\"]", version_file.read_text(encoding="utf-8"))
+        if match:
+            return match.group(1)
     return None
+
+
+def _version_key(version: str | None) -> tuple[int, ...]:
+    return tuple(int(part) for part in re.findall(r"\d+", version or "")) or (0,)
+
+
+def _is_supported_dynare(version: str | None) -> bool:
+    return bool(version) and "unstable" not in version.lower() and _version_key(version) >= _version_key(MINIMUM_DYNARE_VERSION)
 
 
 def find_matlab() -> Discovery:
@@ -109,14 +124,14 @@ def find_dynare() -> Discovery:
     patterns: list[str]
     if system == "Windows":
         patterns = [
-            rf"C:\dynare\{CERTIFIED_DYNARE_VERSION}\matlab",
-            rf"C:\Program Files\Dynare\{CERTIFIED_DYNARE_VERSION}\matlab",
+            rf"C:\dynare\{MINIMUM_DYNARE_VERSION}\matlab",
+            rf"C:\Program Files\Dynare\{MINIMUM_DYNARE_VERSION}\matlab",
             r"C:\dynare\*\matlab",
             r"C:\Program Files\Dynare\*\matlab",
         ]
     elif system == "Darwin":
         patterns = [
-            f"/Applications/Dynare/{CERTIFIED_DYNARE_VERSION}/matlab",
+            f"/Applications/Dynare/{MINIMUM_DYNARE_VERSION}/matlab",
             "/Applications/Dynare/*/matlab",
             "/opt/homebrew/opt/dynare/lib/dynare/matlab",
         ]
@@ -146,10 +161,10 @@ def installation_report(engine: str = "matlab") -> dict[str, object]:
     warnings: list[str] = []
     if dynare.available and not dynare.certified:
         warnings.append(
-            f"Dynare {dynare.version or 'version unknown'} was found; numerical certification currently uses Dynare {CERTIFIED_DYNARE_VERSION}."
+            f"Dynare {dynare.version or 'version unknown'} was found; Dynare {MINIMUM_DYNARE_VERSION} or newer is required."
         )
     return {
-        "ready": python_ok and selected.available and dynare.available,
+        "ready": python_ok and selected.available and dynare.available and bool(dynare.certified),
         "requestedEngine": engine,
         "python": {
             "available": python_ok,

@@ -33,4 +33,17 @@ if ~isempty(resolved)
     dynare_path = fileparts(resolved);
 end
 
+version_string = dynare_version();
+tokens = regexp(version_string, '^(\d+)\.(\d+)', 'tokens', 'once');
+if isempty(tokens)
+    error('dege:dynare:UnknownVersion', ...
+        'Could not verify the installed Dynare version: %s', version_string);
+end
+major_version = str2double(tokens{1});
+minor_version = str2double(tokens{2});
+if major_version < 7 || (major_version == 7 && minor_version < 1)
+    error('dege:dynare:UnsupportedVersion', ...
+        'Dynare 7.1 or newer is required; found Dynare %s.', version_string);
+end
+
 end

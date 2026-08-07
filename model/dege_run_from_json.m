@@ -146,6 +146,7 @@ end
 response = struct();
 response.mode = 'live simulation';
 response.engine = runtime_engine();
+response.dynareVersion = dynare_version();
 response.message = sprintf('Simulation completed through %s and Dynare.', response.engine);
 response.scenario = get_struct_field(request, 'scenario', struct());
 response.parameters = model_init;

@@ -16,7 +16,7 @@ class LocalSetupTests(unittest.TestCase):
     def test_configured_matlab_and_dynare_are_detected(self):
         matlab = check_installation.Discovery(True, "/software/matlab", "DEGE_MATLAB_EXE")
         dynare = check_installation.Discovery(
-            True, "/software/dynare/6.4/matlab", "DEGE_DYNARE_PATH", "6.4", True
+            True, "/software/dynare/7.1/matlab", "DEGE_DYNARE_PATH", "7.1", True
         )
         octave = check_installation.Discovery(False, None, "not found")
         with (
@@ -28,12 +28,22 @@ class LocalSetupTests(unittest.TestCase):
 
         self.assertTrue(report["ready"])
         self.assertEqual(report["matlab"]["source"], "DEGE_MATLAB_EXE")
-        self.assertEqual(report["dynare"]["version"], "6.4")
+        self.assertEqual(report["dynare"]["version"], "7.1")
         self.assertTrue(report["dynare"]["certified"])
 
     def test_noncertified_dynare_version_is_reported(self):
-        path = Path("/software/dynare/7.1/matlab")
-        self.assertEqual(check_installation._version_from_dynare_path(path), "7.1")
+        dynare = check_installation.Discovery(
+            True, "/software/dynare/6.4/matlab", "DEGE_DYNARE_PATH", "6.4", False
+        )
+        with (
+            patch.object(check_installation, "find_matlab", return_value=check_installation.Discovery(True, "/software/matlab", "PATH")),
+            patch.object(check_installation, "find_dynare", return_value=dynare),
+            patch.object(check_installation, "find_octave", return_value=check_installation.Discovery(False, None, "not found")),
+        ):
+            report = check_installation.installation_report("matlab")
+        self.assertFalse(report["ready"])
+        self.assertIn("7.1 or newer", report["warnings"][0])
+        self.assertFalse(check_installation._is_supported_dynare("8-unstable"))
 
     def test_downloadable_example_is_a_complete_unilateral_request(self):
         path = REPO_ROOT / "web" / "data" / "example_request.json"

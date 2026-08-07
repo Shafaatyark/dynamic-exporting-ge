@@ -28,7 +28,7 @@ Requirements:
 
 - Python 3.10 or newer;
 - MATLAB with `jsondecode` and `jsonencode`;
-- Dynare (version 6.4 is the currently validated release).
+- Dynare 7.1 or a newer stable release (7.1 is the currently validated release).
 
 Clone the repository, then use the launcher for your operating system.
 
@@ -50,7 +50,7 @@ cd dynamic-exporting-ge
 
 The launcher:
 
-1. detects MATLAB and Dynare, preferring the validated Dynare 6.4 when several versions are installed;
+1. detects MATLAB and Dynare, selecting the newest installed version that is at least Dynare 7.1;
 2. creates an isolated `.venv` and installs the small Python API dependency set when needed;
 3. sets portable environment variables for this session only;
 4. starts the simulator at `http://127.0.0.1:8000`; and

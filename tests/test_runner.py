@@ -74,6 +74,10 @@ class RequestValidationTests(unittest.TestCase):
         right = normalize_request({"variables": ["*"], "scenario": {"horizon": SOLUTION_HORIZON}})
         fingerprint = model_fingerprint()
         self.assertEqual(request_cache_key(left, fingerprint), request_cache_key(right, fingerprint))
+        self.assertNotEqual(
+            request_cache_key(left, fingerprint, "dynare-7.1"),
+            request_cache_key(right, fingerprint, "dynare-7.2"),
+        )
         json.dumps(left, allow_nan=False)
 
 
@@ -89,6 +93,7 @@ class SavedResultTests(unittest.TestCase):
         for preset in ("unilateral_10", "bilateral_10"):
             result = load_saved_result(preset)
             validate_result(result, require_complete=True)
+            self.assertEqual(result.get("dynareVersion"), "7.1")
             self.assertEqual(result["mode"], "saved model result")
             catalogs.append([item["name"] for item in result["variables"]])
             for series in result["series"].values():

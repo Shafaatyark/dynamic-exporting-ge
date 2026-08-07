@@ -4,7 +4,7 @@ GitHub Pages hosts only the static `web/` directory. It cannot start Python, Oct
 
 ## Service contract
 
-1. Install Python 3.10+, repository dependencies, Dynare, and either GNU Octave or MATLAB.
+1. Install Python 3.10+, repository dependencies, Dynare 7.1 or a newer stable release, and a compatible GNU Octave or MATLAB release.
 2. Set `DEGE_DYNARE_PATH` to Dynare's `matlab` directory.
 3. Select `DEGE_ENGINE=octave` (preferred) or `DEGE_ENGINE=matlab`.
 4. Start `python -m uvicorn api.app:app --host 0.0.0.0 --port 8000` behind HTTPS.

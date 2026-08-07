@@ -29,10 +29,12 @@ def main() -> None:
     catalogs = []
     for preset in ("unilateral_10", "bilateral_10"):
         result = load_saved_result(preset)
+        if result.get("dynareVersion") != "7.1":
+            raise ValueError(f"{preset}: saved result was not generated with Dynare 7.1")
         _validate_tariffs(preset, result)
         catalog = [item["name"] for item in result["variables"]]
         catalogs.append(catalog)
-        print(f"{preset}: {len(result['periods'])} periods, {len(catalog)} complete finite series")
+        print(f"{preset}: Dynare {result['dynareVersion']}, {len(result['periods'])} periods, {len(catalog)} complete finite series")
     if catalogs[0] != catalogs[1]:
         raise ValueError("Saved examples have different variable catalogs")
 

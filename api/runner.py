@@ -349,7 +349,9 @@ def run_simulation(
     _progress(progress, "validating", "Validating request")
     request = normalize_request(payload)
     fingerprint = model_fingerprint()
-    cache_key = request_cache_key(request, fingerprint)
+    engine, executable = resolve_engine()
+    runtime_fingerprint = solver_runtime_fingerprint(engine, executable)
+    cache_key = request_cache_key(request, fingerprint, runtime_fingerprint)
     cache_file = cache_root() / f"{cache_key}.json"
 
     _progress(progress, "cache_lookup", "Checking successful-result cache")
@@ -370,7 +372,6 @@ def run_simulation(
     stderr_file = job_dir / "solver_stderr.txt"
     request_file.write_text(json.dumps(request, indent=2, allow_nan=False), encoding="utf-8")
 
-    engine, executable = resolve_engine()
     command = engine_command(engine, executable, request_file, output_file)
     timeout = timeout or _positive_timeout(os.environ.get("DEGE_SOLVER_TIMEOUT", "1800"))
     _progress(progress, "solver_running", f"Running {engine} and Dynare")
@@ -492,9 +493,21 @@ def model_fingerprint() -> str:
     return digest.hexdigest()
 
 
-def request_cache_key(request: dict[str, Any], fingerprint: str) -> str:
+def request_cache_key(request: dict[str, Any], fingerprint: str, runtime_fingerprint: str = "") -> str:
     canonical = json.dumps(request, sort_keys=True, separators=(",", ":"), allow_nan=False)
-    return hashlib.sha256(f"{fingerprint}\n{canonical}".encode("utf-8")).hexdigest()
+    return hashlib.sha256(f"{fingerprint}\n{runtime_fingerprint}\n{canonical}".encode("utf-8")).hexdigest()
+
+
+def solver_runtime_fingerprint(engine: str, executable: str) -> str:
+    digest = hashlib.sha256()
+    digest.update(engine.encode("utf-8"))
+    digest.update(str(Path(executable).expanduser().resolve()).encode("utf-8"))
+    dynare_path = os.environ.get("DEGE_DYNARE_PATH") or os.environ.get("DYNARE_MATLAB_PATH") or ""
+    digest.update(dynare_path.encode("utf-8"))
+    version_file = Path(dynare_path).expanduser() / "dynare_version.m" if dynare_path else None
+    if version_file and version_file.is_file():
+        digest.update(version_file.read_bytes())
+    return digest.hexdigest()
 
 
 def jobs_root() -> Path:
