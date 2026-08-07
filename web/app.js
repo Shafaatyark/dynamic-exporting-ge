@@ -47,8 +47,8 @@ const STRUCTURE_SPECS = [
 const state = {
   result: null,
   catalog: [],
-  selected: new Set(CORE_VARIABLES),
-  axes: {},
+  tiles: [{ id: 1, series: CORE_VARIABLES.map((name) => ({ name, axis: "y" })) }],
+  nextTileId: 2,
   running: false,
 };
 
@@ -56,9 +56,10 @@ const el = Object.fromEntries([
   "runStatus", "apiBase", "scenarioPreset", "horizon", "targetRate", "initialTau21",
   "initialTau12", "pathProfile", "rebateType", "customPathWrap", "customPath",
   "parameterGrid", "structureGrid", "resetParams", "transformMode", "plotPeriods",
-  "customVariable", "addVariable", "loadSaved", "runButton", "downloadCsv",
+  "seriesSearch", "seriesSelect", "axisChoice", "tileChoice", "addSeries",
+  "loadSaved", "runButton", "downloadCsv",
   "downloadFigure", "errorBox", "metricWelfare", "metricSsUtil", "metricRevenue",
-  "metricMode", "plot", "variableSearch", "selectCore", "clearSeries", "variableSelector",
+  "metricMode", "plotGrid", "selectCore", "clearSeries",
 ].map((id) => [id, document.getElementById(id)]));
 
 function renderControls() {
@@ -241,15 +242,28 @@ function acceptResult(result, displayMode) {
     throw new Error("The result payload is incomplete.");
   }
   state.result = result;
-  state.catalog = Array.isArray(result.variables) ? result.variables : Object.keys(result.series).map((name) => ({ name, label: name, defaultTransform: "raw" }));
-  state.selected = new Set([...state.selected].filter((name) => result.series[name]));
-  if (!state.selected.size) CORE_VARIABLES.filter((name) => result.series[name]).forEach((name) => state.selected.add(name));
+  const suppliedCatalog = Array.isArray(result.variables)
+    ? result.variables
+    : Object.keys(result.series).map((name) => ({ name, defaultTransform: "raw" }));
+  state.catalog = suppliedCatalog
+    .map((item) => ({ ...item, label: DEGE_SERIES_LABELS.economicLabel(item.name) }))
+    .sort((left, right) => left.label.localeCompare(right.label));
+  state.tiles.forEach((tile) => {
+    tile.series = tile.series.filter((item) => result.series[item.name]);
+  });
+  if (!selectedSeriesNames().length) {
+    state.tiles = [{
+      id: 1,
+      series: CORE_VARIABLES.filter((name) => result.series[name]).map((name) => ({ name, axis: "y" })),
+    }];
+    state.nextTileId = 2;
+  }
   el.plotPeriods.max = String(result.periods.length);
   el.plotPeriods.value = String(Math.min(Number(el.plotPeriods.value) || 80, result.periods.length));
   el.metricMode.textContent = displayMode;
   updateMetrics(result.metrics || {});
-  renderVariableSelector();
-  renderPlot();
+  renderSeriesPicker();
+  renderPlots();
 }
 
 function updateMetrics(metrics) {
@@ -262,40 +276,64 @@ function formatMetric(value) {
   return typeof value === "number" && Number.isFinite(value) ? value.toPrecision(6) : "n/a";
 }
 
-function renderVariableSelector() {
-  const query = el.variableSearch.value.trim().toLowerCase();
-  el.variableSelector.replaceChildren();
-  state.catalog
-    .filter((item) => !query || `${item.name} ${item.label || ""} ${item.type || ""}`.toLowerCase().includes(query))
-    .forEach((item) => {
-      const row = document.createElement("div");
-      row.className = "check-row";
-      const label = document.createElement("label");
-      label.className = "series-check";
-      label.title = `${item.name}${item.type ? ` — ${item.type}` : ""}`;
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.checked = state.selected.has(item.name);
-      const text = document.createElement("span");
-      text.textContent = item.label || item.name;
-      label.append(checkbox, text);
-      const axis = document.createElement("select");
-      axis.className = "axis-select";
-      axis.innerHTML = '<option value="y">Left</option><option value="y2">Right</option>';
-      axis.value = state.axes[item.name] || "y";
-      axis.disabled = !checkbox.checked;
-      checkbox.addEventListener("change", () => {
-        if (checkbox.checked) state.selected.add(item.name); else state.selected.delete(item.name);
-        axis.disabled = !checkbox.checked;
-        renderPlot();
-      });
-      axis.addEventListener("change", () => {
-        state.axes[item.name] = axis.value;
-        renderPlot();
-      });
-      row.append(label, axis);
-      el.variableSelector.append(row);
+function selectedSeriesNames() {
+  return [...new Set(state.tiles.flatMap((tile) => tile.series.map((item) => item.name)))];
+}
+
+function catalogItem(name) {
+  return state.catalog.find((item) => item.name === name);
+}
+
+function seriesLabel(name) {
+  return catalogItem(name)?.label || DEGE_SERIES_LABELS.economicLabel(name);
+}
+
+function renderSeriesPicker() {
+  const query = el.seriesSearch.value.trim().toLowerCase();
+  const previousSeries = el.seriesSelect.value;
+  const matching = state.catalog.filter((item) => (
+    !query || `${item.label} ${item.name} ${item.type || ""}`.toLowerCase().includes(query)
+  ));
+
+  el.seriesSelect.replaceChildren();
+  if (!matching.length) {
+    const empty = document.createElement("option");
+    empty.textContent = "No matching series";
+    empty.value = "";
+    el.seriesSelect.append(empty);
+    el.seriesSelect.disabled = true;
+    el.addSeries.disabled = true;
+  } else {
+    matching.forEach((item) => {
+      const option = document.createElement("option");
+      option.value = item.name;
+      option.textContent = DEGE_SERIES_LABELS.displayLabel(item.name);
+      el.seriesSelect.append(option);
     });
+    el.seriesSelect.disabled = false;
+    el.addSeries.disabled = state.running;
+    if (matching.some((item) => item.name === previousSeries)) {
+      el.seriesSelect.value = previousSeries;
+    } else if (matching.some((item) => item.name === "c1")) {
+      el.seriesSelect.value = "c1";
+    }
+  }
+
+  const previousTile = el.tileChoice.value;
+  el.tileChoice.replaceChildren();
+  state.tiles.forEach((tile, index) => {
+    const option = document.createElement("option");
+    option.value = String(tile.id);
+    option.textContent = `Chart ${index + 1}`;
+    el.tileChoice.append(option);
+  });
+  const newTile = document.createElement("option");
+  newTile.value = "new";
+  newTile.textContent = "New chart tile";
+  el.tileChoice.append(newTile);
+  if ([...el.tileChoice.options].some((option) => option.value === previousTile)) {
+    el.tileChoice.value = previousTile;
+  }
 }
 
 function seriesTransform(name) {
@@ -306,42 +344,143 @@ function seriesTransform(name) {
   return catalogItem?.defaultTransform || series.defaultTransform || "raw";
 }
 
-function renderPlot() {
+function renderPlots() {
   if (!state.result) return;
+  el.plotGrid.replaceChildren();
+  state.tiles.forEach((tile, tileIndex) => el.plotGrid.append(buildChartTile(tile, tileIndex)));
+}
+
+function buildChartTile(tile, tileIndex) {
+  const article = document.createElement("article");
+  article.className = "chart-tile";
+  article.dataset.tileId = String(tile.id);
+
+  const header = document.createElement("div");
+  header.className = "chart-tile-header";
+  const heading = document.createElement("div");
+  const title = document.createElement("h3");
+  title.textContent = `Chart ${tileIndex + 1}`;
+  const subtitle = document.createElement("p");
+  subtitle.textContent = `${tile.series.length} ${tile.series.length === 1 ? "series" : "series"}`;
+  heading.append(title, subtitle);
+
+  const actions = document.createElement("div");
+  actions.className = "chart-tile-actions";
+  const svgButton = document.createElement("button");
+  svgButton.type = "button";
+  svgButton.className = "secondary small-button";
+  svgButton.textContent = "SVG";
+  svgButton.addEventListener("click", () => downloadTileFigure(tile.id, tileIndex));
+  actions.append(svgButton);
+  if (state.tiles.length > 1) {
+    const removeTile = document.createElement("button");
+    removeTile.type = "button";
+    removeTile.className = "secondary small-button";
+    removeTile.textContent = "Remove tile";
+    removeTile.addEventListener("click", () => {
+      state.tiles = state.tiles.filter((candidate) => candidate.id !== tile.id);
+      renderSeriesPicker();
+      renderPlots();
+    });
+    actions.append(removeTile);
+  }
+  header.append(heading, actions);
+
+  const plot = document.createElement("div");
+  plot.id = `plot-${tile.id}`;
+  plot.className = "plot";
+
+  const seriesBox = document.createElement("div");
+  seriesBox.className = "tile-series-box";
+  if (!tile.series.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-series";
+    empty.textContent = "No series in this chart. Use the dropdown above to add one.";
+    seriesBox.append(empty);
+  } else {
+    tile.series.forEach((item) => seriesBox.append(buildSelectedSeriesRow(tile, item)));
+  }
+
+  article.append(header, plot, seriesBox);
+  window.requestAnimationFrame(() => drawTilePlot(plot, tile));
+  return article;
+}
+
+function buildSelectedSeriesRow(tile, item) {
+  const row = document.createElement("div");
+  row.className = "selected-series-row";
+
+  const description = document.createElement("div");
+  description.className = "selected-series-name";
+  const label = document.createElement("strong");
+  label.textContent = seriesLabel(item.name);
+  const code = document.createElement("span");
+  code.textContent = item.name;
+  description.append(label, code);
+
+  const axisLabel = document.createElement("label");
+  axisLabel.className = "inline-axis-control";
+  const axisText = document.createElement("span");
+  axisText.textContent = "Axis";
+  const axis = document.createElement("select");
+  axis.setAttribute("aria-label", `Axis for ${seriesLabel(item.name)}`);
+  axis.innerHTML = '<option value="y">Left</option><option value="y2">Right</option>';
+  axis.value = item.axis;
+  axis.addEventListener("change", () => {
+    item.axis = axis.value;
+    renderPlots();
+  });
+  axisLabel.append(axisText, axis);
+
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "remove-series";
+  remove.setAttribute("aria-label", `Remove ${seriesLabel(item.name)} from chart`);
+  remove.title = "Remove series";
+  remove.textContent = "×";
+  remove.addEventListener("click", () => {
+    tile.series = tile.series.filter((candidate) => candidate !== item);
+    renderPlots();
+  });
+
+  row.append(description, axisLabel, remove);
+  return row;
+}
+
+function drawTilePlot(plot, tile) {
   const count = Math.max(1, Math.min(state.result.periods.length, Number(el.plotPeriods.value) || state.result.periods.length));
   const periods = state.result.periods.slice(0, count);
-  const selected = [...state.selected].filter((name) => state.result.series[name]);
-  const traces = selected.map((name, index) => {
-    const transform = seriesTransform(name);
-    const series = state.result.series[name];
+  const traces = tile.series.map((item, index) => {
+    const transform = seriesTransform(item.name);
+    const series = state.result.series[item.name];
     const values = Array.isArray(series[transform]) ? series[transform] : series.raw;
     return {
       x: periods,
       y: values.slice(0, count),
-      name: series.label || name,
-      meta: name,
-      yaxis: state.axes[name] || "y",
+      name: seriesLabel(item.name),
+      meta: `${seriesLabel(item.name)} (${item.name})`,
+      yaxis: item.axis,
       mode: "lines+markers",
       line: { color: COLORS[index % COLORS.length], dash: DASHES[index % DASHES.length], width: 2.2 },
       marker: { color: COLORS[index % COLORS.length], symbol: MARKERS[index % MARKERS.length], size: 5 },
       hovertemplate: "%{meta}<br>period %{x}<br>%{y:.6g}<extra></extra>",
     };
   });
-  const hasRight = selected.some((name) => state.axes[name] === "y2");
+  const hasRight = tile.series.some((item) => item.axis === "y2");
   const layout = {
-    margin: { l: 66, r: hasRight ? 72 : 32, t: 28, b: 56 },
+    margin: { l: 64, r: hasRight ? 72 : 28, t: 18, b: 72 },
     paper_bgcolor: "#ffffff",
     plot_bgcolor: "#ffffff",
     hovermode: "x unified",
-    legend: { orientation: "h", y: -0.2, x: 0 },
+    legend: { orientation: "h", y: -0.24, x: 0 },
     xaxis: { title: "Period", showline: true, linecolor: "#667085", mirror: false, zeroline: false },
     yaxis: { title: transformLabel(el.transformMode.value), showline: true, linecolor: "#667085", zerolinecolor: "#d8ddd2" },
-    annotations: traces.length ? [] : [{ text: "Select at least one series", showarrow: false, x: 0.5, y: 0.5, xref: "paper", yref: "paper" }],
+    annotations: traces.length ? [] : [{ text: "Add a series to this chart", showarrow: false, x: 0.5, y: 0.5, xref: "paper", yref: "paper" }],
   };
   if (hasRight) {
-    layout.yaxis2 = { title: "Secondary axis", overlaying: "y", side: "right", showline: true, linecolor: "#667085", zeroline: false };
+    layout.yaxis2 = { title: "Right axis", overlaying: "y", side: "right", showline: true, linecolor: "#667085", zeroline: false };
   }
-  Plotly.react(el.plot, traces, layout, { responsive: true, displaylogo: false, scrollZoom: true });
+  Plotly.react(plot, traces, layout, { responsive: true, displaylogo: false, scrollZoom: true });
 }
 
 function transformLabel(transform) {
@@ -350,28 +489,46 @@ function transformLabel(transform) {
 
 function selectCore() {
   if (!state.result) return;
-  state.selected = new Set(CORE_VARIABLES.filter((name) => state.result.series[name]));
-  renderVariableSelector();
-  renderPlot();
+  state.tiles = [{
+    id: 1,
+    series: CORE_VARIABLES.filter((name) => state.result.series[name]).map((name) => ({ name, axis: "y" })),
+  }];
+  state.nextTileId = 2;
+  renderSeriesPicker();
+  renderPlots();
 }
 
-function addVariable() {
-  const name = el.customVariable.value.trim();
+function addSeries() {
+  const name = el.seriesSelect.value;
   if (!name) return;
   if (!state.result?.series?.[name]) {
-    showError(`The current solver result does not contain a series named ${name}.`);
+    showError("Choose an available economic series before adding it.");
     return;
   }
   clearError();
-  state.selected.add(name);
-  el.customVariable.value = "";
-  renderVariableSelector();
-  renderPlot();
+  let tile;
+  if (el.tileChoice.value === "new") {
+    tile = { id: state.nextTileId, series: [] };
+    state.nextTileId += 1;
+    state.tiles.push(tile);
+  } else {
+    tile = state.tiles.find((candidate) => candidate.id === Number(el.tileChoice.value));
+  }
+  if (!tile) return showError("Choose a chart tile before adding the series.");
+  const existing = tile.series.find((item) => item.name === name);
+  if (existing) {
+    existing.axis = el.axisChoice.value;
+  } else {
+    tile.series.push({ name, axis: el.axisChoice.value });
+  }
+  renderSeriesPicker();
+  el.tileChoice.value = String(tile.id);
+  renderPlots();
 }
 
 function downloadCsv() {
   if (!state.result) return;
-  const names = [...state.selected].filter((name) => state.result.series[name]);
+  const names = selectedSeriesNames().filter((name) => state.result.series[name]);
   if (!names.length) return showError("Select at least one series before downloading CSV.");
   const count = Math.max(1, Math.min(state.result.periods.length, Number(el.plotPeriods.value) || state.result.periods.length));
   const rows = [["period", ...names.map((name) => `${name}__${seriesTransform(name)}`)]];
@@ -398,9 +555,15 @@ function downloadBlob(content, filename, type) {
 
 function downloadFigure() {
   if (!state.result) return;
-  Plotly.downloadImage(el.plot, {
+  state.tiles.forEach((tile, index) => downloadTileFigure(tile.id, index));
+}
+
+function downloadTileFigure(tileId, tileIndex) {
+  const plot = document.getElementById(`plot-${tileId}`);
+  if (!plot) return;
+  Plotly.downloadImage(plot, {
     format: "svg",
-    filename: `dege_${state.result.scenario?.preset || "simulation"}`,
+    filename: `dege_${state.result.scenario?.preset || "simulation"}_chart_${tileIndex + 1}`,
     width: 1400,
     height: 850,
     scale: 2,
@@ -411,6 +574,7 @@ function setRunning(running) {
   state.running = running;
   el.runButton.disabled = running;
   el.loadSaved.disabled = running || el.scenarioPreset.value === "custom_path";
+  el.addSeries.disabled = running || !el.seriesSelect.value;
 }
 
 function showStatus(message, kind) {
@@ -433,13 +597,17 @@ function bindEvents() {
   el.resetParams.addEventListener("click", resetParameters);
   el.runButton.addEventListener("click", runLiveSimulation);
   el.loadSaved.addEventListener("click", loadSavedResult);
-  el.transformMode.addEventListener("change", renderPlot);
-  el.plotPeriods.addEventListener("change", renderPlot);
-  el.variableSearch.addEventListener("input", renderVariableSelector);
+  el.transformMode.addEventListener("change", renderPlots);
+  el.plotPeriods.addEventListener("change", renderPlots);
+  el.seriesSearch.addEventListener("input", renderSeriesPicker);
   el.selectCore.addEventListener("click", selectCore);
-  el.clearSeries.addEventListener("click", () => { state.selected.clear(); renderVariableSelector(); renderPlot(); });
-  el.addVariable.addEventListener("click", addVariable);
-  el.customVariable.addEventListener("keydown", (event) => { if (event.key === "Enter") addVariable(); });
+  el.clearSeries.addEventListener("click", () => {
+    state.tiles = [{ id: 1, series: [] }];
+    state.nextTileId = 2;
+    renderSeriesPicker();
+    renderPlots();
+  });
+  el.addSeries.addEventListener("click", addSeries);
   el.downloadCsv.addEventListener("click", downloadCsv);
   el.downloadFigure.addEventListener("click", downloadFigure);
   el.apiBase.addEventListener("change", () => localStorage.setItem("degeApiBase", el.apiBase.value.trim()));

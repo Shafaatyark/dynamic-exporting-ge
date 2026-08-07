@@ -30,4 +30,7 @@ jobs:
       - name: Validate saved model results
         run: python scripts/validate_saved_examples.py
       - name: Check frontend JavaScript syntax
-        run: node --check web/app.js
+        run: |
+          node --check web/series-labels.js
+          node --check web/app.js
+          node tests/test_frontend_labels.js

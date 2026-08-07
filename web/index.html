@@ -17,7 +17,6 @@
       <header class="topbar">
         <div>
           <h1>Dynamic Exporting GE Simulator</h1>
-          <p>Teaching and research interface for prescribed tariff transitions.</p>
         </div>
         <div class="status-block">
           <span id="runStatus" class="status-pill">Loading saved result</span>
@@ -130,11 +129,6 @@
                 Periods shown
                 <input id="plotPeriods" type="number" min="1" max="602" step="1" value="80" />
               </label>
-              <label>
-                Add variable
-                <input id="customVariable" type="text" placeholder="e.g. elastc12" />
-              </label>
-              <button id="addVariable" class="secondary" type="button">Add</button>
             </div>
             <div class="run-tools">
               <button id="loadSaved" class="secondary" type="button">Load saved result</button>
@@ -153,25 +147,47 @@
             <div><span>Data source</span><strong id="metricMode">--</strong></div>
           </div>
 
-          <div class="plot-wrap">
-            <div id="plot"></div>
+          <div class="series-builder" aria-label="Add a model series">
+            <label>
+              Search variables
+              <input id="seriesSearch" type="search" placeholder="Type an economic concept" />
+            </label>
+            <label class="series-choice">
+              Series to plot
+              <select id="seriesSelect" aria-label="Series to plot"></select>
+            </label>
+            <label>
+              Axis
+              <select id="axisChoice">
+                <option value="y">Left axis</option>
+                <option value="y2">Right axis</option>
+              </select>
+            </label>
+            <label>
+              Chart tile
+              <select id="tileChoice"></select>
+            </label>
+            <button id="addSeries" type="button">Add series</button>
           </div>
 
-          <div class="selector-wrap">
-            <div class="section-heading">
-              <h2>Series</h2>
+          <div class="chart-section">
+            <div class="chart-section-heading">
+              <div>
+                <h2>Charts</h2>
+                <p>Choose a series above, then add it to an existing chart or a new tile.</p>
+              </div>
               <div class="selector-actions">
-                <input id="variableSearch" type="search" placeholder="Filter series" aria-label="Filter series" />
-                <button id="selectCore" class="secondary" type="button">Core</button>
-                <button id="clearSeries" class="secondary" type="button">Clear</button>
+                <button id="selectCore" class="secondary" type="button">Show core series</button>
+                <button id="clearSeries" class="secondary" type="button">Clear charts</button>
               </div>
             </div>
-            <div id="variableSelector" class="variable-selector"></div>
+            <div id="plotGrid" class="plot-grid"></div>
           </div>
         </section>
       </main>
     </div>
 
+    <script src="./series-labels.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

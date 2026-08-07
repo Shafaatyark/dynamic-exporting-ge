@@ -39,7 +39,7 @@ This manifest records the exact source material approved for migration from the 
 
 ## Public-only files
 
-These 15 files were authored for the new repository rather than copied from the source:
+These 17 files were authored for the new repository rather than copied from the source:
 
 | Public path | Purpose |
 |---|---|
@@ -53,13 +53,15 @@ These 15 files were authored for the new repository rather than copied from the 
 | `scripts/validate_saved_examples.py` | Saved-result completeness and tariff audit |
 | `scripts/compare_reference_results.py` | All-series numerical comparison utility |
 | `tests/test_api.py` | Saved/API and custom-path boundary tests |
+| `tests/test_frontend_labels.js` | Complete economic-label and dropdown-label audit |
+| `web/series-labels.js` | Human-readable economic names for every solver series |
 | `docs/architecture.md` | Dependency graph and runtime boundary |
 | `docs/backend-deployment.md` | Optional live-solver service deployment |
 | `docs/disclosure-manifest.md` | This realized disclosure record |
 | `docs/model-api.md` | Request, job, and result contract |
 | `docs/validation.md` | Numerical and interface validation record |
 
-Together with the 30 approved mappings above, the realized public tree contains exactly 45 files before any Git commit.
+Together with the 30 approved mappings above, the realized public tree contains 47 files. The two additional public-only files were added after initial publication for the approved economic-name and chart-tile interface revision.
 
 ## Intentionally disclosed model content
 
