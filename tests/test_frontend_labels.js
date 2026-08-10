@@ -11,6 +11,10 @@ const htmlSource = fs.readFileSync(path.join(__dirname, "..", "web", "index.html
 const names = result.variables.map((item) => item.name);
 const labels = names.map(economicLabel);
 
+if (!htmlSource.includes('rel="icon" type="image/svg+xml" href="./favicon.svg"')) {
+  throw new Error("The website should load its trade-transition SVG favicon.");
+}
+
 if (!appSource.includes('const CORE_VARIABLES = ["tau21", "im1", "ex12"];')) {
   throw new Error("The initial chart should contain only Home tariff, import, and export series.");
 }
