@@ -81,8 +81,12 @@ function renderControls() {
     input.id = `param-${name}`;
     input.dataset.parameter = name;
     input.type = "number";
-    input.step = "any";
-    input.value = String(value);
+    input.step = "0.01";
+    input.value = formatEditableNumber(value);
+    input.dataset.exactValue = String(value);
+    input.dataset.edited = "false";
+    input.addEventListener("input", () => { input.dataset.edited = "true"; });
+    input.addEventListener("change", () => normalizeNumberInput(input));
     row.append(caption, input);
     el.parameterGrid.append(row);
   });
@@ -110,7 +114,13 @@ function renderControls() {
 }
 
 function resetParameters() {
-  [...PARAMETER_SPECS, ...STRUCTURE_SPECS].forEach(([name, , value]) => {
+  PARAMETER_SPECS.forEach(([name, , value]) => {
+    const input = document.getElementById(`param-${name}`);
+    input.value = formatEditableNumber(value);
+    input.dataset.exactValue = String(value);
+    input.dataset.edited = "false";
+  });
+  STRUCTURE_SPECS.forEach(([name, , value]) => {
     document.getElementById(`param-${name}`).value = String(value);
   });
   showStatus("Parameters reset; displayed data are unchanged", "notice");
@@ -119,11 +129,24 @@ function resetParameters() {
 function collectParameters() {
   const parameters = {};
   document.querySelectorAll("[data-parameter]").forEach((input) => {
-    const value = Number(input.value);
+    const value = input.dataset.exactValue !== undefined && input.dataset.edited === "false"
+      ? Number(input.dataset.exactValue)
+      : Number(input.value);
     if (!Number.isFinite(value)) throw new Error(`${input.dataset.parameter} must be numeric.`);
     parameters[input.dataset.parameter] = value;
   });
   return parameters;
+}
+
+function formatEditableNumber(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return String(value);
+  return String(Number(numeric.toFixed(2)));
+}
+
+function normalizeNumberInput(input) {
+  if (input.value === "") return;
+  input.value = formatEditableNumber(input.value);
 }
 
 function customScope() {
@@ -173,6 +196,11 @@ function renderPolicyPointRows() {
       input.placeholder = field === "period" ? "1–80" : "No change";
       input.setAttribute("aria-label", `${label} for policy point ${index + 1}`);
       input.addEventListener("input", () => {
+        point[field] = input.value;
+        renderCustomPathPreview();
+      });
+      input.addEventListener("change", () => {
+        normalizeNumberInput(input);
         point[field] = input.value;
         renderCustomPathPreview();
       });
@@ -245,8 +273,8 @@ function renderCustomPathPreview() {
       plot_bgcolor: "#ffffff",
       hovermode: "x unified",
       legend: { orientation: "h", x: 0, y: -0.24, font: { size: 10 } },
-      xaxis: { title: "Period", range: [0, SOLUTION_HORIZON], showline: true, linecolor: "#667085" },
-      yaxis: { title: "Tariff rate (%)", showline: true, linecolor: "#667085", zerolinecolor: "#d8ddd2" },
+      xaxis: { title: "Period", range: [0, SOLUTION_HORIZON], tickformat: "d", showline: true, linecolor: "#667085" },
+      yaxis: { title: "Tariff rate (%)", tickformat: ".2f", showline: true, linecolor: "#667085", zerolinecolor: "#d8ddd2" },
     }, { responsive: true, displaylogo: false, displayModeBar: false });
   } catch (error) {
     Plotly.react(el.customPathPreview, [], {
@@ -400,7 +428,7 @@ function updateMetrics(metrics) {
 }
 
 function formatMetric(value) {
-  return typeof value === "number" && Number.isFinite(value) ? value.toPrecision(6) : "n/a";
+  return typeof value === "number" && Number.isFinite(value) ? value.toFixed(2) : "n/a";
 }
 
 function selectedSeriesNames() {
@@ -614,12 +642,12 @@ function drawTilePlot(plot, tile) {
     plot_bgcolor: "#ffffff",
     hovermode: "x unified",
     legend: { orientation: "h", y: -0.24, x: 0 },
-    xaxis: { title: "Period", showline: true, linecolor: "#667085", mirror: false, zeroline: false },
-    yaxis: { title: transformLabel(el.transformMode.value), showline: true, linecolor: "#667085", zerolinecolor: "#d8ddd2" },
+    xaxis: { title: "Period", tickformat: "d", showline: true, linecolor: "#667085", mirror: false, zeroline: false },
+    yaxis: { title: transformLabel(el.transformMode.value), tickformat: ".2f", showline: true, linecolor: "#667085", zerolinecolor: "#d8ddd2" },
     annotations: traces.length ? [] : [{ text: "Add a series to this chart", showarrow: false, x: 0.5, y: 0.5, xref: "paper", yref: "paper" }],
   };
   if (hasRight) {
-    layout.yaxis2 = { title: "Right axis", overlaying: "y", side: "right", showline: true, linecolor: "#667085", zeroline: false };
+    layout.yaxis2 = { title: "Right axis", tickformat: ".2f", overlaying: "y", side: "right", showline: true, linecolor: "#667085", zeroline: false };
   }
   Plotly.react(plot, traces, layout, { responsive: true, displaylogo: false, scrollZoom: true });
 }
@@ -737,6 +765,9 @@ function clearError() {
 }
 
 function bindEvents() {
+  [el.targetRate, el.initialTau21, el.initialTau12, el.plotPeriods].forEach((input) => {
+    input.addEventListener("change", () => normalizeNumberInput(input));
+  });
   el.scenarioPreset.addEventListener("change", updateScenarioControls);
   el.customPolicyScope.addEventListener("change", () => {
     renderPolicyPointRows();
