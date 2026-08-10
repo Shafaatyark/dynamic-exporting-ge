@@ -268,12 +268,12 @@ function renderCustomPathPreview() {
       },
     ];
     Plotly.react(el.customPathPreview, traces, {
-      margin: { l: 48, r: 12, t: 12, b: 42 },
+      margin: { l: 48, r: 12, t: 12, b: 86 },
       paper_bgcolor: "#ffffff",
       plot_bgcolor: "#ffffff",
       hovermode: "x unified",
-      legend: { orientation: "h", x: 0, y: -0.24, font: { size: 10 } },
-      xaxis: { title: "Period", range: [0, SOLUTION_HORIZON], tickformat: "d", showline: true, linecolor: "#667085" },
+      legend: { orientation: "h", x: 0, y: -0.46, xanchor: "left", yanchor: "top", font: { size: 10 } },
+      xaxis: { title: { text: "Period", standoff: 8 }, range: [0, SOLUTION_HORIZON], tickformat: "d", showline: true, linecolor: "#667085" },
       yaxis: { title: "Tariff rate (%)", tickformat: ".2f", showline: true, linecolor: "#667085", zerolinecolor: "#d8ddd2" },
     }, { responsive: true, displaylogo: false, displayModeBar: false });
   } catch (error) {

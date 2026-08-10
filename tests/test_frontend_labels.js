@@ -35,6 +35,10 @@ if (!htmlSource.includes('id="customPolicyScope"') || !htmlSource.includes('id="
   throw new Error("The custom scenario should use policy points and a preview instead of a CSV textarea.");
 }
 
+if (!appSource.includes('b: 86') || !appSource.includes('y: -0.46') || !appSource.includes('standoff: 8')) {
+  throw new Error("The custom-path preview should separate its x-axis title from the legend.");
+}
+
 if (!htmlSource.includes("Revenue PV / GDP (%)") || !appSource.includes("100 * revenueToGdp")) {
   throw new Error("The revenue summary should display the present-value revenue-to-GDP ratio in percent.");
 }
