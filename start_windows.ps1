@@ -26,7 +26,20 @@ if ($CheckOnly) {
     exit $(if ($report.ready) { 0 } else { 1 })
 }
 if (-not $report.ready) {
-    Write-Error "MATLAB and Dynare must be installed before the local simulator can start."
+    $problems = @()
+    if (-not $report.matlab.available) {
+        $problems += "MATLAB was not found. If it is installed in a custom location, set `$env:DEGE_MATLAB_EXE to the full path to matlab.exe."
+    }
+    if (-not $report.dynare.available) {
+        $problems += "Dynare was not found. Set `$env:DEGE_DYNARE_PATH to Dynare's matlab folder (the folder containing dynare.m), then run this launcher again."
+    } elseif (-not $report.dynare.certified) {
+        $dynareVersion = if ($report.dynare.version) { $report.dynare.version } else { "version unknown" }
+        $problems += "Dynare $dynareVersion was found, but Dynare 7.1 or newer is required."
+    }
+    if (-not $report.python.available) {
+        $problems += "Python 3.10 or newer is required."
+    }
+    Write-Error ($problems -join [Environment]::NewLine)
     exit 1
 }
 

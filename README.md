@@ -2,6 +2,8 @@
 
 This teaching-oriented repository exposes prescribed tariff transitions in a two-country dynamic exporting general-equilibrium model. The economic equations and steady-state logic remain in MATLAB/Octave and Dynare; Python only validates requests, starts the solver, caches successful runs, and serializes results for the static web interface.
 
+**Website:** [Dynamic Exporting GE Simulator](https://shafaatyark.github.io/dynamic-exporting-ge/)
+
 The public scope is deliberately narrow:
 
 - symmetric and asymmetric baseline steady states;
@@ -39,6 +41,16 @@ git clone https://github.com/Shafaatyark/dynamic-exporting-ge.git
 cd dynamic-exporting-ge
 .\start_windows.ps1
 ```
+
+If MATLAB or Dynare is installed outside the locations searched by the launcher, point the launcher to it for the current PowerShell session:
+
+```powershell
+$env:DEGE_MATLAB_EXE = "C:\path\to\MATLAB\bin\matlab.exe" # only if MATLAB is not detected
+$env:DEGE_DYNARE_PATH = "C:\path\to\dynare-7.1\matlab"    # folder containing dynare.m
+.\start_windows.ps1
+```
+
+These declarations affect only the current PowerShell session. To configure Dynare persistently for the current Windows user, use `[Environment]::SetEnvironmentVariable("DEGE_DYNARE_PATH", "C:\path\to\dynare-7.1\matlab", "User")`, then open a new PowerShell window.
 
 macOS or Linux:
 
@@ -84,7 +96,7 @@ Open `http://127.0.0.1:8080`. Saved results work without the backend. Plotly is 
 
 Install mutually compatible releases listed on the [Dynare download page](https://www.dynare.org/download/) and follow the [official Dynare installation guide](https://www.dynare.org/manual/installation-and-configuration.html). GNU Octave installers are available from the [official Octave download page](https://octave.org/download.html).
 
-Point this repository at Dynare's `matlab` directory without editing model files:
+When using Octave, point this repository at Dynare's `matlab` directory without editing model files:
 
 ```powershell
 $env:DEGE_DYNARE_PATH = "C:\path\to\dynare\matlab"
