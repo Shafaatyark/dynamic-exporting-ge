@@ -8,6 +8,7 @@ Thumbs.db
 # Python environments and caches
 .venv/
 venv/
+.python-packages/
 __pycache__/
 *.py[cod]
 .pytest_cache/

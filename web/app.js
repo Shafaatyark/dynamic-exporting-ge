@@ -48,6 +48,8 @@ const STRUCTURE_SPECS = [
 const state = {
   result: null,
   catalog: [],
+  policyPoints: [{ id: 1, period: "1", homeRate: "10", foreignRate: "10" }],
+  nextPolicyPointId: 2,
   tiles: [{ id: 1, series: CORE_VARIABLES.map((name) => ({
     name,
     axis: DEGE_SERIES_LABELS.defaultAxis(name),
@@ -58,7 +60,8 @@ const state = {
 
 const el = Object.fromEntries([
   "runStatus", "apiBase", "scenarioPreset", "targetRate", "initialTau21",
-  "initialTau12", "pathProfile", "rebateType", "customPathWrap", "customPath",
+  "initialTau12", "pathProfile", "rebateType", "customPathWrap", "customPolicyScope",
+  "customInterpolation", "policyPointHeader", "policyPointRows", "addPolicyPoint", "customPathPreview",
   "parameterGrid", "structureGrid", "resetParams", "transformMode", "plotPeriods",
   "seriesSearch", "seriesSelect", "axisChoice", "tileChoice", "addSeries",
   "loadSaved", "runButton", "downloadCsv",
@@ -123,30 +126,136 @@ function collectParameters() {
   return parameters;
 }
 
-function parseCustomPaths(horizon) {
-  const rows = el.customPath.value.split(/\r?\n/).map((row) => row.trim()).filter(Boolean);
-  if (rows.length && /tau/i.test(rows[0])) rows.shift();
-  const tau21Path = [];
-  const tau12Path = [];
-  rows.forEach((row, index) => {
-    const values = row.split(/[;,\t]/).map((value) => Number(value.trim()));
-    if (values.length !== 2 || !values.every((value) => Number.isFinite(value) && value > 0)) {
-      throw new Error(`Custom-path row ${index + 1} must contain two positive gross tariffs.`);
-    }
-    tau21Path.push(values[0]);
-    tau12Path.push(values[1]);
+function customScope() {
+  const value = el.customPolicyScope.value;
+  return {
+    home: value === "home" || value === "both",
+    foreign: value === "foreign" || value === "both",
+  };
+}
+
+function buildCustomTariffPaths() {
+  return DEGE_CUSTOM_PATHS.buildPolicyPaths({
+    points: state.policyPoints,
+    scope: el.customPolicyScope.value,
+    interpolation: el.customInterpolation.value,
+    initialTau21: el.initialTau21.value,
+    initialTau12: el.initialTau12.value,
+    horizon: SOLUTION_HORIZON,
   });
-  if (!rows.length) {
-    throw new Error("Custom paths require at least one data row.");
+}
+
+function renderPolicyPointRows() {
+  const scope = customScope();
+  const twoRates = scope.home && scope.foreign;
+  el.policyPointHeader.className = `policy-point-row policy-point-header${twoRates ? " two-policy-rates" : ""}`;
+  el.policyPointHeader.replaceChildren();
+  ["Period", ...(scope.home ? ["Home rate (%)"] : []), ...(scope.foreign ? ["Foreign rate (%)"] : []), ""].forEach((text) => {
+    const heading = document.createElement("span");
+    heading.textContent = text;
+    el.policyPointHeader.append(heading);
+  });
+
+  el.policyPointRows.replaceChildren();
+  state.policyPoints.forEach((point, index) => {
+    const row = document.createElement("div");
+    row.className = `policy-point-row${twoRates ? " two-policy-rates" : ""}`;
+    const fields = [["period", "Period", "1", "80", "1"]];
+    if (scope.home) fields.push(["homeRate", "Home tariff rate", "-99.9", "500", "0.1"]);
+    if (scope.foreign) fields.push(["foreignRate", "Foreign tariff rate", "-99.9", "500", "0.1"]);
+    fields.forEach(([field, label, min, max, step]) => {
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = min;
+      input.max = max;
+      input.step = step;
+      input.value = point[field];
+      input.placeholder = field === "period" ? "1–80" : "No change";
+      input.setAttribute("aria-label", `${label} for policy point ${index + 1}`);
+      input.addEventListener("input", () => {
+        point[field] = input.value;
+        renderCustomPathPreview();
+      });
+      row.append(input);
+    });
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "remove-policy-point";
+    remove.textContent = "×";
+    remove.title = "Remove policy point";
+    remove.setAttribute("aria-label", `Remove policy point ${index + 1}`);
+    remove.disabled = state.policyPoints.length === 1;
+    remove.addEventListener("click", () => {
+      state.policyPoints = state.policyPoints.filter((candidate) => candidate !== point);
+      renderPolicyPointRows();
+      renderCustomPathPreview();
+    });
+    row.append(remove);
+    el.policyPointRows.append(row);
+  });
+}
+
+function addPolicyPoint() {
+  const usedPeriods = state.policyPoints.map((point) => Number(point.period)).filter(Number.isInteger);
+  const nextPeriod = Math.max(0, ...usedPeriods) + 1;
+  if (nextPeriod > SOLUTION_HORIZON) {
+    showError(`Policy points cannot extend beyond period ${SOLUTION_HORIZON}.`);
+    return;
   }
-  if (rows.length > horizon) {
-    throw new Error(`Custom paths allow at most ${horizon} data rows.`);
+  state.policyPoints.push({
+    id: state.nextPolicyPointId,
+    period: String(nextPeriod),
+    homeRate: "",
+    foreignRate: "",
+  });
+  state.nextPolicyPointId += 1;
+  clearError();
+  renderPolicyPointRows();
+  renderCustomPathPreview();
+}
+
+function renderCustomPathPreview() {
+  if (el.customPathWrap.classList.contains("hidden")) return;
+  try {
+    const paths = buildCustomTariffPaths();
+    const periods = Array.from({ length: SOLUTION_HORIZON + 1 }, (_, index) => index);
+    const traces = [
+      {
+        x: periods,
+        y: [paths.initialHome, ...paths.homeRates],
+        name: `Home tariff${paths.scope.home ? "" : " (unchanged)"}`,
+        mode: "lines",
+        line: { color: COLORS[0], width: 2.2, dash: paths.scope.home ? "solid" : "dot" },
+        opacity: paths.scope.home ? 1 : 0.55,
+        hovertemplate: "Home<br>period %{x}<br>%{y:.2f}%<extra></extra>",
+      },
+      {
+        x: periods,
+        y: [paths.initialForeign, ...paths.foreignRates],
+        name: `Foreign tariff${paths.scope.foreign ? "" : " (unchanged)"}`,
+        mode: "lines",
+        line: { color: COLORS[1], width: 2.2, dash: paths.scope.foreign ? "dash" : "dot" },
+        opacity: paths.scope.foreign ? 1 : 0.55,
+        hovertemplate: "Foreign<br>period %{x}<br>%{y:.2f}%<extra></extra>",
+      },
+    ];
+    Plotly.react(el.customPathPreview, traces, {
+      margin: { l: 48, r: 12, t: 12, b: 42 },
+      paper_bgcolor: "#ffffff",
+      plot_bgcolor: "#ffffff",
+      hovermode: "x unified",
+      legend: { orientation: "h", x: 0, y: -0.24, font: { size: 10 } },
+      xaxis: { title: "Period", range: [0, SOLUTION_HORIZON], showline: true, linecolor: "#667085" },
+      yaxis: { title: "Tariff rate (%)", showline: true, linecolor: "#667085", zerolinecolor: "#d8ddd2" },
+    }, { responsive: true, displaylogo: false, displayModeBar: false });
+  } catch (error) {
+    Plotly.react(el.customPathPreview, [], {
+      margin: { l: 12, r: 12, t: 12, b: 12 },
+      annotations: [{ text: error.message, showarrow: false, x: 0.5, y: 0.5, xref: "paper", yref: "paper", font: { color: "#a33d33", size: 11 } }],
+      xaxis: { visible: false },
+      yaxis: { visible: false },
+    }, { responsive: true, displaylogo: false, displayModeBar: false });
   }
-  while (tau21Path.length < horizon) {
-    tau21Path.push(tau21Path[tau21Path.length - 1]);
-    tau12Path.push(tau12Path[tau12Path.length - 1]);
-  }
-  return { tau21Path, tau12Path };
 }
 
 function buildRequest() {
@@ -159,7 +268,11 @@ function buildRequest() {
     pathProfile: el.pathProfile.value,
     rebateType: el.rebateType.value,
   };
-  if (scenario.preset === "custom_path") Object.assign(scenario, parseCustomPaths(SOLUTION_HORIZON));
+  if (scenario.preset === "custom_path") {
+    const custom = buildCustomTariffPaths();
+    scenario.tau21Path = custom.tau21Path;
+    scenario.tau12Path = custom.tau12Path;
+  }
   return { scenario, parameters: collectParameters(), variables: ["*"] };
 }
 
@@ -169,7 +282,10 @@ function updateScenarioControls() {
   el.targetRate.disabled = custom;
   el.pathProfile.disabled = custom;
   el.loadSaved.disabled = custom || state.running;
-  if (custom) showStatus("Custom paths require a live solver", "notice");
+  if (custom) {
+    showStatus("Custom paths require a live solver", "notice");
+    window.requestAnimationFrame(renderCustomPathPreview);
+  }
 }
 
 function apiBase() {
@@ -279,7 +395,8 @@ function acceptResult(result, displayMode) {
 function updateMetrics(metrics) {
   el.metricWelfare.textContent = formatMetric(metrics.welf);
   el.metricSsUtil.textContent = formatMetric(metrics.ssUtil);
-  el.metricRevenue.textContent = formatMetric(metrics.revPV1_try ?? metrics.revPV1_raw);
+  const revenueToGdp = metrics.revPV1_try ?? metrics.revPV1_raw;
+  el.metricRevenue.textContent = formatMetric(typeof revenueToGdp === "number" ? 100 * revenueToGdp : revenueToGdp);
 }
 
 function formatMetric(value) {
@@ -621,6 +738,14 @@ function clearError() {
 
 function bindEvents() {
   el.scenarioPreset.addEventListener("change", updateScenarioControls);
+  el.customPolicyScope.addEventListener("change", () => {
+    renderPolicyPointRows();
+    renderCustomPathPreview();
+  });
+  el.customInterpolation.addEventListener("change", renderCustomPathPreview);
+  el.addPolicyPoint.addEventListener("click", addPolicyPoint);
+  el.initialTau21.addEventListener("input", renderCustomPathPreview);
+  el.initialTau12.addEventListener("input", renderCustomPathPreview);
   el.resetParams.addEventListener("click", resetParameters);
   el.runButton.addEventListener("click", runLiveSimulation);
   el.loadSaved.addEventListener("click", loadSavedResult);
@@ -645,6 +770,7 @@ function bindEvents() {
 
 async function initialize() {
   renderControls();
+  renderPolicyPointRows();
   bindEvents();
   el.apiBase.value = localStorage.getItem("degeApiBase") || "";
   updateScenarioControls();

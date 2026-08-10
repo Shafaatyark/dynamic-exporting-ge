@@ -105,15 +105,36 @@
                 </select>
               </label>
             </div>
-            <label id="customPathWrap" class="hidden">
-              Custom gross tariff paths (last row continues through period 80)
-              <textarea
-                id="customPath"
-                rows="5"
-                spellcheck="false"
-                placeholder="tau21,tau12&#10;1.00,1.00&#10;1.05,1.00&#10;1.10,1.00"
-              ></textarea>
-            </label>
+            <div id="customPathWrap" class="custom-path-builder hidden">
+              <div class="two-col">
+                <label>
+                  Policy changes
+                  <select id="customPolicyScope">
+                    <option value="home">Home import tariff (τ₂₁)</option>
+                    <option value="foreign">Foreign import tariff (τ₁₂)</option>
+                    <option value="both">Both tariffs</option>
+                  </select>
+                </label>
+                <label>
+                  Between policy points
+                  <select id="customInterpolation">
+                    <option value="step">Step</option>
+                    <option value="linear">Linear interpolation</option>
+                  </select>
+                </label>
+              </div>
+              <p class="field-help">Enter tariff rates in percent. Blank rates mean no new change. The final rate continues through period 80.</p>
+              <div class="policy-point-table" aria-label="Custom tariff policy points">
+                <div id="policyPointHeader" class="policy-point-row policy-point-header"></div>
+                <div id="policyPointRows" class="policy-point-rows"></div>
+              </div>
+              <button id="addPolicyPoint" class="secondary" type="button">Add policy point</button>
+              <div class="custom-preview-heading">
+                <strong>Path preview</strong>
+                <span>Preview only—no model solve</span>
+              </div>
+              <div id="customPathPreview" class="custom-path-preview" aria-label="Custom tariff path preview"></div>
+            </div>
           </section>
 
           <section class="panel-section">
@@ -160,7 +181,7 @@
           <div class="summary-strip" aria-label="Simulation metrics">
             <div><span>Welfare</span><strong id="metricWelfare">--</strong></div>
             <div><span>SS utility</span><strong id="metricSsUtil">--</strong></div>
-            <div><span>Revenue PV</span><strong id="metricRevenue">--</strong></div>
+            <div><span>Revenue PV / GDP (%)</span><strong id="metricRevenue">--</strong></div>
             <div><span>Data source</span><strong id="metricMode">--</strong></div>
           </div>
 
@@ -209,6 +230,7 @@
     </div>
 
     <script src="./series-labels.js"></script>
+    <script src="./custom-paths.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

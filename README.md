@@ -6,6 +6,7 @@ The public scope is deliberately narrow:
 
 - symmetric and asymmetric baseline steady states;
 - unilateral, bilateral, and custom exogenous tariff paths;
+- policy-point custom paths with percent-rate inputs, step or linear interpolation, and a Plotly preview;
 - all macro and model series returned by Dynare;
 - interactive Plotly charts and CSV/SVG downloads.
 
@@ -69,6 +70,8 @@ Run the genuine 10% unilateral example before starting the server:
 ```
 
 The macOS/Linux equivalents are `--check-only` and `--smoke-test`. If PowerShell blocks a downloaded script, use `powershell -ExecutionPolicy Bypass -File .\start_windows.ps1`. The downloadable request is [`web/data/example_request.json`](web/data/example_request.json).
+
+On managed Windows computers, organizational policy may block executables inside `.venv`. The launcher first tries the normal virtual environment; if creation or execution is blocked, it uses the approved system Python and installs only the API dependencies into the repository-local `.python-packages/` directory. That directory is ignored by Git, and `PYTHONPATH` is set only for the launcher process. The same selected Python runtime is used for dependency checks, smoke tests, and the local server.
 
 ## Run the static frontend locally
 
