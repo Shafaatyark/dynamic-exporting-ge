@@ -55,6 +55,16 @@ class LocalSetupTests(unittest.TestCase):
         self.assertTrue(all(value == 1.1 for value in request["tariffPaths"]["tau21"]))
         self.assertTrue(all(value == 1.0 for value in request["tariffPaths"]["tau12"]))
 
+    def test_windows_launcher_has_managed_python_fallback(self):
+        launcher = (REPO_ROOT / "start_windows.ps1").read_text(encoding="utf-8")
+        gitignore = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8")
+        self.assertIn("Enable-SystemPythonFallback", launcher)
+        self.assertIn("pip install --target $packageRoot", launcher)
+        self.assertIn("$env:PYTHONPATH", launcher)
+        self.assertIn("& $runtimePython scripts\\run_example.py", launcher)
+        self.assertIn("& $runtimePython -m uvicorn", launcher)
+        self.assertIn(".python-packages/", gitignore)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -31,8 +31,12 @@ if (!htmlSource.includes("Periods plotted") || !htmlSource.includes('id="plotPer
   throw new Error("The plot area should provide an independent period-range control.");
 }
 
-if (!appSource.includes("while (tau21Path.length < horizon)") || !htmlSource.includes("last row continues through period 80")) {
-  throw new Error("Short custom tariff paths should carry their final row through period 80.");
+if (!htmlSource.includes('id="customPolicyScope"') || !htmlSource.includes('id="customPathPreview"') || htmlSource.includes('id="customPath"')) {
+  throw new Error("The custom scenario should use policy points and a preview instead of a CSV textarea.");
+}
+
+if (!htmlSource.includes("Revenue PV / GDP (%)") || !appSource.includes("100 * revenueToGdp")) {
+  throw new Error("The revenue summary should display the present-value revenue-to-GDP ratio in percent.");
 }
 
 if (!htmlSource.includes("Open PowerShell in the downloaded project folder") || !htmlSource.includes("use <code>cd</code>")) {

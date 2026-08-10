@@ -32,8 +32,10 @@ jobs:
       - name: Check frontend JavaScript syntax
         run: |
           node --check web/series-labels.js
+          node --check web/custom-paths.js
           node --check web/app.js
           node tests/test_frontend_labels.js
+          node tests/test_custom_paths.js
       - name: Check local launcher syntax
         shell: pwsh
         run: |

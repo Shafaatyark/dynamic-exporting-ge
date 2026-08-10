@@ -280,6 +280,89 @@ h2 {
   gap: 10px;
 }
 
+.custom-path-builder {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfa;
+}
+
+.field-help {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.policy-point-table {
+  display: grid;
+  gap: 6px;
+}
+
+.policy-point-rows {
+  display: grid;
+  gap: 6px;
+}
+
+.policy-point-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 6px;
+}
+
+.policy-point-row.two-policy-rates {
+  grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1fr) 34px;
+}
+
+.policy-point-header {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.policy-point-header span:last-child {
+  text-align: center;
+}
+
+.policy-point-row input {
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.remove-policy-point {
+  min-height: 34px;
+  padding: 0;
+  border-color: var(--line);
+  background: #fff;
+  color: var(--danger);
+  font-size: 18px;
+}
+
+.custom-preview-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.custom-preview-heading span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.custom-path-preview {
+  width: 100%;
+  height: 220px;
+  min-height: 220px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+}
+
 .parameter-grid {
   display: grid;
   gap: 8px;

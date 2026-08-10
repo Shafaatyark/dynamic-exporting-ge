@@ -18,9 +18,72 @@ if (-not $pythonCommand) {
 }
 $systemPython = $pythonCommand.Source
 
-$reportText = & $systemPython scripts\check_installation.py --engine matlab --json
+$venvPython = Join-Path $repoRoot ".venv\Scripts\python.exe"
+$packageRoot = Join-Path $repoRoot ".python-packages"
+$runtimePython = $null
+$usingSystemFallback = $false
+
+function Test-PythonExecutable {
+    param([Parameter(Mandatory = $true)][string]$Executable)
+    try {
+        & $Executable -c "import sys; print(sys.executable)" 2>$null | Out-Null
+        return $LASTEXITCODE -eq 0
+    } catch {
+        return $false
+    }
+}
+
+function Enable-SystemPythonFallback {
+    $script:runtimePython = $systemPython
+    $script:usingSystemFallback = $true
+    if ([string]::IsNullOrWhiteSpace($env:PYTHONPATH)) {
+        $env:PYTHONPATH = $packageRoot
+    } elseif (($env:PYTHONPATH -split [IO.Path]::PathSeparator) -notcontains $packageRoot) {
+        $env:PYTHONPATH = "$packageRoot$([IO.Path]::PathSeparator)$env:PYTHONPATH"
+    }
+    Write-Host "Using the managed-Windows Python fallback with packages in .python-packages."
+}
+
+function Test-ApiDependencies {
+    if ($script:usingSystemFallback -and
+        (-not (Test-Path -LiteralPath (Join-Path $packageRoot "fastapi")) -or
+         -not (Test-Path -LiteralPath (Join-Path $packageRoot "uvicorn")))) {
+        return $false
+    }
+    try {
+        & $script:runtimePython -c "import fastapi, uvicorn" 2>$null
+        return $LASTEXITCODE -eq 0
+    } catch {
+        return $false
+    }
+}
+
+if (Test-Path -LiteralPath $venvPython) {
+    if (Test-PythonExecutable -Executable $venvPython) {
+        $runtimePython = $venvPython
+    } else {
+        Write-Warning "The existing .venv Python cannot run under the current Windows policy."
+        Enable-SystemPythonFallback
+    }
+} elseif (-not $CheckOnly -and -not $SkipInstall) {
+    Write-Host "Creating the local Python environment..."
+    try {
+        & $systemPython -m venv .venv
+        if ($LASTEXITCODE -ne 0 -or -not (Test-PythonExecutable -Executable $venvPython)) {
+            throw "The virtual environment could not be created or executed."
+        }
+        $runtimePython = $venvPython
+    } catch {
+        Write-Warning "The local virtual environment is unavailable: $($_.Exception.Message)"
+        Enable-SystemPythonFallback
+    }
+} else {
+    Enable-SystemPythonFallback
+}
+
+$reportText = & $runtimePython scripts\check_installation.py --engine matlab --json
 $report = $reportText | ConvertFrom-Json
-& $systemPython scripts\check_installation.py --engine matlab
+& $runtimePython scripts\check_installation.py --engine matlab
 
 if ($CheckOnly) {
     exit $(if ($report.ready) { 0 } else { 1 })
@@ -48,29 +111,38 @@ $env:DEGE_MATLAB_EXE = $report.matlab.path
 $env:DEGE_DYNARE_PATH = $report.dynare.path
 $env:DEGE_CORS_ORIGINS = "http://127.0.0.1:$Port,http://localhost:$Port"
 
-$venvPython = Join-Path $repoRoot ".venv\Scripts\python.exe"
-if (-not (Test-Path -LiteralPath $venvPython)) {
-    if ($SkipInstall) {
-        Write-Error "The local Python environment is missing. Run again without -SkipInstall to create it."
-        exit 1
-    }
-    Write-Host "Creating the local Python environment..."
-    & $systemPython -m venv .venv
-}
-
-& $venvPython -c "import fastapi, uvicorn" 2>$null
-if ($LASTEXITCODE -ne 0) {
+if (-not (Test-ApiDependencies)) {
     if ($SkipInstall) {
         Write-Error "FastAPI dependencies are missing. Run again without -SkipInstall to install them."
         exit 1
     }
     Write-Host "Installing the local web interface dependencies..."
-    & $venvPython -m pip install -r api\requirements.txt
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    if ($usingSystemFallback) {
+        New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
+        & $systemPython -m pip install --target $packageRoot -r api\requirements.txt
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    } else {
+        try {
+            & $runtimePython -m pip install -r api\requirements.txt
+            if ($LASTEXITCODE -ne 0) { throw "Virtual-environment dependency installation failed." }
+        } catch {
+            Write-Warning "The virtual environment cannot install or run the API dependencies."
+            Enable-SystemPythonFallback
+            if (-not (Test-ApiDependencies)) {
+                New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
+                & $systemPython -m pip install --target $packageRoot -r api\requirements.txt
+                if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
+        }
+    }
+    if (-not (Test-ApiDependencies)) {
+        Write-Error "FastAPI dependencies could not be loaded by the selected Python runtime."
+        exit 1
+    }
 }
 
 if ($SmokeTest) {
-    & $venvPython scripts\run_example.py
+    & $runtimePython scripts\run_example.py
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
@@ -91,7 +163,7 @@ $opener = Start-Job -ScriptBlock {
 Write-Host "Starting the simulator at $localUrl"
 Write-Host "MATLAB and Dynare will run only on this computer. Press Ctrl+C to stop."
 try {
-    & $venvPython -m uvicorn api.app:app --host 127.0.0.1 --port $Port
+    & $runtimePython -m uvicorn api.app:app --host 127.0.0.1 --port $Port
 } finally {
     Stop-Job -Job $opener -ErrorAction SilentlyContinue
     Remove-Job -Job $opener -Force -ErrorAction SilentlyContinue
