@@ -39,6 +39,18 @@ if (!htmlSource.includes("Revenue PV / GDP (%)") || !appSource.includes("100 * r
   throw new Error("The revenue summary should display the present-value revenue-to-GDP ratio in percent.");
 }
 
+if (!htmlSource.includes("Welfare (%)") || !htmlSource.includes("SS utility (%)")) {
+  throw new Error("Welfare and steady-state utility summaries should be explicitly labeled as percentages.");
+}
+
+if (!appSource.includes("value.toFixed(2)") || !appSource.includes('tickformat: ".2f"')) {
+  throw new Error("Website metrics and chart axes should display no more than two decimal places.");
+}
+
+if (!htmlSource.includes("Initial Home gross tariff (τ₂₁)") || !htmlSource.includes("Initial Foreign gross tariff (τ₁₂)")) {
+  throw new Error("Initial tariff controls should identify the Home and Foreign tariff separately.");
+}
+
 if (!htmlSource.includes("Open PowerShell in the downloaded project folder") || !htmlSource.includes("use <code>cd</code>")) {
   throw new Error("Windows startup instructions should explain how to select the project directory.");
 }
