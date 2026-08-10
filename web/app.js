@@ -499,7 +499,8 @@ function seriesTransform(name) {
   const selected = el.transformMode.value;
   if (selected !== "auto") return selected;
   const catalogItem = state.catalog.find((item) => item.name === name);
-  return catalogItem?.defaultTransform || series.defaultTransform || "raw";
+  const preferred = catalogItem?.defaultTransform || series.defaultTransform || "level";
+  return preferred === "raw" ? "level" : preferred;
 }
 
 function renderPlots() {
@@ -653,7 +654,7 @@ function drawTilePlot(plot, tile) {
 }
 
 function transformLabel(transform) {
-  return ({ auto: "Series-specific transform", level: "Level", log_change: "Log change", percent_change: "Percent change", rate_percent: "Rate (%)", raw: "Raw solver value" })[transform] || transform;
+  return ({ auto: "Series-specific transform", level: "Level", log_change: "Log change", percent_change: "Percent change", rate_percent: "Rate (%)" })[transform] || transform;
 }
 
 function selectCore() {

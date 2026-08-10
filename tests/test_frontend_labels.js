@@ -51,6 +51,14 @@ if (!appSource.includes("value.toFixed(2)") || !appSource.includes('tickformat: 
   throw new Error("Website metrics and chart axes should display no more than two decimal places.");
 }
 
+if (htmlSource.includes('option value="raw"') || htmlSource.includes("Raw Dynare value")) {
+  throw new Error("Raw Dynare values should not be offered as a plotting or CSV transform.");
+}
+
+if (!appSource.includes('return preferred === "raw" ? "level" : preferred;')) {
+  throw new Error("Automatic plotting and CSV export should replace internal raw defaults with economic levels.");
+}
+
 if (!htmlSource.includes("Initial Home gross tariff (τ₂₁)") || !htmlSource.includes("Initial Foreign gross tariff (τ₁₂)")) {
   throw new Error("Initial tariff controls should identify the Home and Foreign tariff separately.");
 }
