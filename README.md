@@ -1,8 +1,8 @@
-# Dynamic Exporting GE Simulator
+# Trade Policy Simulator
 
 This teaching-oriented repository exposes prescribed tariff transitions in a two-country dynamic exporting general-equilibrium model. The economic equations and steady-state logic remain in MATLAB/Octave and Dynare; Python only validates requests, starts the solver, caches successful runs, and serializes results for the static web interface.
 
-**Website:** [Dynamic Exporting GE Simulator](https://shafaatyark.github.io/dynamic-exporting-ge/)
+**Website:** [Trade Policy Simulator](https://shafaatyark.github.io/dynamic-exporting-ge/)
 
 The public scope is deliberately narrow:
 

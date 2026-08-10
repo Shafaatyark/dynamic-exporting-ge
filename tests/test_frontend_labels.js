@@ -15,6 +15,10 @@ if (!htmlSource.includes('rel="icon" type="image/svg+xml" href="./favicon.svg"')
   throw new Error("The website should load its trade-transition SVG favicon.");
 }
 
+if (!htmlSource.includes("<title>Trade Policy Simulator</title>") || !htmlSource.includes("<h1>Trade Policy Simulator</h1>")) {
+  throw new Error("The browser tab and page header should use the public Trade Policy Simulator title.");
+}
+
 if (!appSource.includes('const CORE_VARIABLES = ["tau21", "im1", "ex12"];')) {
   throw new Error("The initial chart should contain only Home tariff, import, and export series.");
 }
