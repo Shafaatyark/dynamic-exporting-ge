@@ -5,6 +5,15 @@ const CORE_VARIABLES = ["tau21", "im1", "ex12"];
 const COLORS = ["#0b5d5e", "#9a4f1f", "#435b8c", "#7c3f72", "#557a38", "#a23b3b", "#3b7f91", "#76532f"];
 const DASHES = ["solid", "dash", "dot", "dashdot", "longdash", "longdashdot"];
 const MARKERS = ["circle", "square", "diamond", "cross", "triangle-up", "triangle-down", "x", "star"];
+const VARIABLE_GROUP_ORDER = [
+  "Tariffs and fiscal policy",
+  "Bilateral trade",
+  "Firm dynamics",
+  "Prices and factor returns",
+  "Home economy",
+  "Foreign economy",
+  "Model diagnostics",
+];
 
 const PARAMETER_SPECS = [
   ["gam", "Source substitution elasticity (γ)", 4],
@@ -47,6 +56,8 @@ const STRUCTURE_SPECS = [
 
 const state = {
   result: null,
+  resultsCurrent: false,
+  suppressInputTracking: false,
   catalog: [],
   policyPoints: [{ id: 1, period: "1", homeRate: "10", foreignRate: "10" }],
   nextPolicyPointId: 2,
@@ -62,11 +73,11 @@ const el = Object.fromEntries([
   "runStatus", "apiBase", "scenarioPreset", "targetRate", "initialTau21",
   "initialTau12", "pathProfile", "rebateType", "customPathWrap", "customPolicyScope",
   "customInterpolation", "policyPointHeader", "policyPointRows", "addPolicyPoint", "customPathPreview",
-  "parameterGrid", "structureGrid", "resetParams", "transformMode", "plotPeriods",
+  "parameterGrid", "structureGrid", "parametersDetails", "resetParams", "transformMode", "plotPeriods",
   "seriesSearch", "seriesSelect", "axisChoice", "tileChoice", "addSeries",
-  "loadSaved", "runButton", "downloadCsv",
-  "downloadFigure", "errorBox", "metricWelfare", "metricSsUtil", "metricRevenue",
-  "metricMode", "plotGrid", "selectCore", "clearSeries",
+  "loadSaved", "runButton", "downloadCsv", "downloadAllCsv",
+  "downloadFigure", "errorBox", "resultNotice", "metricWelfare", "metricSsUtil", "metricRevenue",
+  "metricMode", "plotGrid", "selectCore", "clearSeries", "results",
 ].map((id) => [id, document.getElementById(id)]));
 
 function renderControls() {
@@ -85,7 +96,10 @@ function renderControls() {
     input.value = formatEditableNumber(value);
     input.dataset.exactValue = String(value);
     input.dataset.edited = "false";
-    input.addEventListener("input", () => { input.dataset.edited = "true"; });
+    input.addEventListener("input", () => {
+      input.dataset.edited = "true";
+      markResultsStale();
+    });
     input.addEventListener("change", () => normalizeNumberInput(input));
     row.append(caption, input);
     el.parameterGrid.append(row);
@@ -108,12 +122,13 @@ function renderControls() {
       option.selected = optionValue === value;
       select.append(option);
     });
+    select.addEventListener("change", () => markResultsStale());
     row.append(caption, select);
     el.structureGrid.append(row);
   });
 }
 
-function resetParameters() {
+function resetParameters({ announce = true, markStale = true } = {}) {
   PARAMETER_SPECS.forEach(([name, , value]) => {
     const input = document.getElementById(`param-${name}`);
     input.value = formatEditableNumber(value);
@@ -123,7 +138,8 @@ function resetParameters() {
   STRUCTURE_SPECS.forEach(([name, , value]) => {
     document.getElementById(`param-${name}`).value = String(value);
   });
-  showStatus("Parameters reset; displayed data are unchanged", "notice");
+  if (markStale) markResultsStale();
+  if (announce) showStatus("Parameters reset—run or load results to update the charts", "notice");
 }
 
 function collectParameters() {
@@ -149,6 +165,18 @@ function normalizeNumberInput(input) {
   input.value = formatEditableNumber(input.value);
 }
 
+function grossTariffFromPercent(value, label) {
+  const rate = Number(value);
+  if (!Number.isFinite(rate) || rate <= -100) {
+    throw new Error(`${label} must be greater than -100%.`);
+  }
+  return 1 + rate / 100;
+}
+
+function percentFromGrossTariff(value) {
+  return formatEditableNumber(100 * (Number(value) - 1));
+}
+
 function customScope() {
   const value = el.customPolicyScope.value;
   return {
@@ -162,8 +190,8 @@ function buildCustomTariffPaths() {
     points: state.policyPoints,
     scope: el.customPolicyScope.value,
     interpolation: el.customInterpolation.value,
-    initialTau21: el.initialTau21.value,
-    initialTau12: el.initialTau12.value,
+    initialTau21: grossTariffFromPercent(el.initialTau21.value, "Initial Home tariff rate"),
+    initialTau12: grossTariffFromPercent(el.initialTau12.value, "Initial Foreign tariff rate"),
     horizon: SOLUTION_HORIZON,
   });
 }
@@ -197,6 +225,7 @@ function renderPolicyPointRows() {
       input.setAttribute("aria-label", `${label} for policy point ${index + 1}`);
       input.addEventListener("input", () => {
         point[field] = input.value;
+        markResultsStale("Custom path changed—run the live model to update results");
         renderCustomPathPreview();
       });
       input.addEventListener("change", () => {
@@ -215,6 +244,7 @@ function renderPolicyPointRows() {
     remove.disabled = state.policyPoints.length === 1;
     remove.addEventListener("click", () => {
       state.policyPoints = state.policyPoints.filter((candidate) => candidate !== point);
+      markResultsStale("Custom path changed—run the live model to update results");
       renderPolicyPointRows();
       renderCustomPathPreview();
     });
@@ -237,6 +267,7 @@ function addPolicyPoint() {
     foreignRate: "",
   });
   state.nextPolicyPointId += 1;
+  markResultsStale("Custom path changed—run the live model to update results");
   clearError();
   renderPolicyPointRows();
   renderCustomPathPreview();
@@ -291,8 +322,8 @@ function buildRequest() {
     preset: el.scenarioPreset.value,
     horizon: SOLUTION_HORIZON,
     targetRatePercent: Number(el.targetRate.value),
-    initialTau21: Number(el.initialTau21.value),
-    initialTau12: Number(el.initialTau12.value),
+    initialTau21: grossTariffFromPercent(el.initialTau21.value, "Initial Home tariff rate"),
+    initialTau12: grossTariffFromPercent(el.initialTau12.value, "Initial Foreign tariff rate"),
     pathProfile: el.pathProfile.value,
     rebateType: el.rebateType.value,
   };
@@ -310,10 +341,16 @@ function updateScenarioControls() {
   el.targetRate.disabled = custom;
   el.pathProfile.disabled = custom;
   el.loadSaved.disabled = custom || state.running;
-  if (custom) {
-    showStatus("Custom paths require a live solver", "notice");
-    window.requestAnimationFrame(renderCustomPathPreview);
+  if (custom) window.requestAnimationFrame(renderCustomPathPreview);
+}
+
+async function handleScenarioPresetChange() {
+  updateScenarioControls();
+  if (el.scenarioPreset.value === "custom_path") {
+    markResultsStale("Custom path ready—run the live model to update results");
+    return;
   }
+  await loadSavedResult();
 }
 
 function apiBase() {
@@ -378,6 +415,8 @@ async function loadSavedResult() {
     const filename = preset === "bilateral_10" ? "saved_bilateral_10.json" : "saved_unilateral_10.json";
     showStatus("Loading saved model result", "running");
     const result = await responseJson(await fetch(`./data/${filename}`));
+    if (el.scenarioPreset.value !== preset) return;
+    syncInputsToSavedResult(result);
     acceptResult(result, "saved model result");
     showStatus("Saved model result (not a live solve)", "saved");
   } catch (error) {
@@ -385,6 +424,21 @@ async function loadSavedResult() {
     showStatus("Saved result unavailable", "error");
   } finally {
     setRunning(false);
+  }
+}
+
+function syncInputsToSavedResult(result) {
+  const scenario = result.scenario || {};
+  state.suppressInputTracking = true;
+  try {
+    el.targetRate.value = formatEditableNumber(scenario.targetRatePercent ?? 10);
+    el.initialTau21.value = percentFromGrossTariff(scenario.initialTau21 ?? 1);
+    el.initialTau12.value = percentFromGrossTariff(scenario.initialTau12 ?? 1);
+    el.pathProfile.value = scenario.pathProfile || "step";
+    el.rebateType.value = scenario.rebateType || "lumpsum";
+    resetParameters({ announce: false, markStale: false });
+  } finally {
+    state.suppressInputTracking = false;
   }
 }
 
@@ -416,6 +470,7 @@ function acceptResult(result, displayMode) {
   el.plotPeriods.value = String(Math.min(Number(el.plotPeriods.value) || 80, result.periods.length));
   el.metricMode.textContent = displayMode;
   updateMetrics(result.metrics || {});
+  setResultsCurrent(true);
   renderSeriesPicker();
   renderPlots();
 }
@@ -431,6 +486,23 @@ function formatMetric(value) {
   return typeof value === "number" && Number.isFinite(value) ? value.toFixed(2) : "n/a";
 }
 
+function setResultsCurrent(current) {
+  state.resultsCurrent = current;
+  el.resultNotice.classList.toggle("hidden", current);
+  el.downloadCsv.disabled = !current || state.running;
+  el.downloadAllCsv.disabled = !current || state.running;
+  el.downloadFigure.disabled = !current || state.running;
+  document.querySelectorAll(".tile-svg-download").forEach((button) => {
+    button.disabled = !current || state.running;
+  });
+}
+
+function markResultsStale(message = "Inputs changed—run the model or load a saved preset to update results") {
+  if (state.suppressInputTracking || !state.result) return;
+  setResultsCurrent(false);
+  showStatus(message, "notice");
+}
+
 function selectedSeriesNames() {
   return [...new Set(state.tiles.flatMap((tile) => tile.series.map((item) => item.name)))];
 }
@@ -441,6 +513,18 @@ function catalogItem(name) {
 
 function seriesLabel(name) {
   return catalogItem(name)?.label || DEGE_SERIES_LABELS.economicLabel(name);
+}
+
+function variableGroup(item) {
+  const name = item.name;
+  const lower = name.toLowerCase();
+  if (/^(tau|ttl|ttk|shock|transfer|t_rs_h|s[12]$|t[12]$)/i.test(name)) return "Tariffs and fiscal policy";
+  if (/(12|21)$/.test(name)) return "Bilateral trade";
+  if (/^(n[12]$|ne[12]$|vd[12]$|pi_h|vx0|dv|kap)/i.test(name)) return "Firm dynamics";
+  if (/^(p[cdxm]?|rer|w[12]$|r[12]$)/i.test(name)) return "Prices and factor returns";
+  if (lower.endsWith("1")) return "Home economy";
+  if (lower.endsWith("2")) return "Foreign economy";
+  return "Model diagnostics";
 }
 
 function renderSeriesPicker() {
@@ -459,11 +543,18 @@ function renderSeriesPicker() {
     el.seriesSelect.disabled = true;
     el.addSeries.disabled = true;
   } else {
-    matching.forEach((item) => {
-      const option = document.createElement("option");
-      option.value = item.name;
-      option.textContent = DEGE_SERIES_LABELS.displayLabel(item.name);
-      el.seriesSelect.append(option);
+    VARIABLE_GROUP_ORDER.forEach((groupName) => {
+      const grouped = matching.filter((item) => variableGroup(item) === groupName);
+      if (!grouped.length) return;
+      const group = document.createElement("optgroup");
+      group.label = groupName;
+      grouped.forEach((item) => {
+        const option = document.createElement("option");
+        option.value = item.name;
+        option.textContent = DEGE_SERIES_LABELS.displayLabel(item.name);
+        group.append(option);
+      });
+      el.seriesSelect.append(group);
     });
     el.seriesSelect.disabled = false;
     el.addSeries.disabled = state.running;
@@ -538,8 +629,9 @@ function buildChartTile(tile, tileIndex) {
   });
   const svgButton = document.createElement("button");
   svgButton.type = "button";
-  svgButton.className = "secondary small-button";
+  svgButton.className = "secondary small-button tile-svg-download";
   svgButton.textContent = "SVG";
+  svgButton.disabled = !state.resultsCurrent || state.running;
   svgButton.addEventListener("click", () => downloadTileFigure(tile.id, tileIndex));
   actions.append(resetZoom, svgButton);
   if (state.tiles.length > 1) {
@@ -644,17 +736,28 @@ function drawTilePlot(plot, tile) {
     hovermode: "x unified",
     legend: { orientation: "h", y: -0.24, x: 0 },
     xaxis: { title: "Period", tickformat: "d", showline: true, linecolor: "#667085", mirror: false, zeroline: false },
-    yaxis: { title: transformLabel(el.transformMode.value), tickformat: ".2f", showline: true, linecolor: "#667085", zerolinecolor: "#d8ddd2" },
+    yaxis: { title: axisTitle(tile, "y"), tickformat: ".2f", showline: true, linecolor: "#667085", zerolinecolor: "#d8ddd2" },
     annotations: traces.length ? [] : [{ text: "Add a series to this chart", showarrow: false, x: 0.5, y: 0.5, xref: "paper", yref: "paper" }],
   };
   if (hasRight) {
-    layout.yaxis2 = { title: "Right axis", tickformat: ".2f", overlaying: "y", side: "right", showline: true, linecolor: "#667085", zeroline: false };
+    layout.yaxis2 = { title: axisTitle(tile, "y2"), tickformat: ".2f", overlaying: "y", side: "right", showline: true, linecolor: "#667085", zeroline: false };
   }
-  Plotly.react(plot, traces, layout, { responsive: true, displaylogo: false, scrollZoom: true });
+  Plotly.react(plot, traces, layout, { responsive: true, displaylogo: false, scrollZoom: false });
 }
 
-function transformLabel(transform) {
-  return ({ auto: "Series-specific transform", level: "Level", log_change: "Log change", percent_change: "Percent change", rate_percent: "Rate (%)" })[transform] || transform;
+function axisTitle(tile, axis) {
+  const series = tile.series.filter((item) => item.axis === axis);
+  if (!series.length) return "Value";
+  const transforms = [...new Set(series.map((item) => seriesTransform(item.name)))];
+  if (transforms.length > 1) return "Mixed units (see legend)";
+  const transform = transforms[0];
+  if (transform === "rate_percent" && series.every((item) => item.name.startsWith("tau"))) return "Tariff rate (%)";
+  return ({
+    level: "Economic level",
+    log_change: "Log change from baseline",
+    percent_change: "Change from baseline (%)",
+    rate_percent: "Rate (%)",
+  })[transform] || "Value";
 }
 
 function selectCore() {
@@ -700,16 +803,26 @@ function addSeries() {
 }
 
 function downloadCsv() {
-  if (!state.result) return;
+  if (!state.result || !state.resultsCurrent) return showError("Update the results before downloading plotted data.");
   const names = selectedSeriesNames().filter((name) => state.result.series[name]);
   if (!names.length) return showError("Select at least one series before downloading CSV.");
   const count = Math.max(1, Math.min(state.result.periods.length, Number(el.plotPeriods.value) || state.result.periods.length));
+  downloadSeriesCsv(names, count, "plotted");
+}
+
+function downloadAllCsv() {
+  if (!state.result || !state.resultsCurrent) return showError("Update the results before downloading all series.");
+  const names = state.catalog.map((item) => item.name).filter((name) => state.result.series[name]);
+  downloadSeriesCsv(names, state.result.periods.length, "all_series");
+}
+
+function downloadSeriesCsv(names, count, suffix) {
   const rows = [["period", ...names.map((name) => `${name}__${seriesTransform(name)}`)]];
   for (let index = 0; index < count; index += 1) {
     rows.push([state.result.periods[index], ...names.map((name) => state.result.series[name][seriesTransform(name)][index])]);
   }
   const csv = rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
-  downloadBlob(csv, `dege_${state.result.scenario?.preset || "simulation"}.csv`, "text/csv;charset=utf-8");
+  downloadBlob(csv, `dege_${state.result.scenario?.preset || "simulation"}_${suffix}.csv`, "text/csv;charset=utf-8");
 }
 
 function csvCell(value) {
@@ -727,7 +840,7 @@ function downloadBlob(content, filename, type) {
 }
 
 function downloadFigure() {
-  if (!state.result) return;
+  if (!state.result || !state.resultsCurrent) return showError("Update the results before downloading figures.");
   state.tiles.forEach((tile, index) => downloadTileFigure(tile.id, index));
 }
 
@@ -748,6 +861,7 @@ function setRunning(running) {
   el.runButton.disabled = running;
   el.loadSaved.disabled = running || el.scenarioPreset.value === "custom_path";
   el.addSeries.disabled = running || !el.seriesSelect.value;
+  setResultsCurrent(state.resultsCurrent);
 }
 
 function showStatus(message, kind) {
@@ -769,15 +883,26 @@ function bindEvents() {
   [el.targetRate, el.initialTau21, el.initialTau12, el.plotPeriods].forEach((input) => {
     input.addEventListener("change", () => normalizeNumberInput(input));
   });
-  el.scenarioPreset.addEventListener("change", updateScenarioControls);
+  el.scenarioPreset.addEventListener("change", handleScenarioPresetChange);
+  el.targetRate.addEventListener("input", () => markResultsStale());
+  el.pathProfile.addEventListener("change", () => markResultsStale());
+  el.rebateType.addEventListener("change", () => markResultsStale());
   el.customPolicyScope.addEventListener("change", () => {
+    markResultsStale("Custom path changed—run the live model to update results");
     renderPolicyPointRows();
     renderCustomPathPreview();
   });
-  el.customInterpolation.addEventListener("change", renderCustomPathPreview);
+  el.customInterpolation.addEventListener("change", () => {
+    markResultsStale("Custom path changed—run the live model to update results");
+    renderCustomPathPreview();
+  });
   el.addPolicyPoint.addEventListener("click", addPolicyPoint);
-  el.initialTau21.addEventListener("input", renderCustomPathPreview);
-  el.initialTau12.addEventListener("input", renderCustomPathPreview);
+  [el.initialTau21, el.initialTau12].forEach((input) => {
+    input.addEventListener("input", () => {
+      markResultsStale();
+      renderCustomPathPreview();
+    });
+  });
   el.resetParams.addEventListener("click", resetParameters);
   el.runButton.addEventListener("click", runLiveSimulation);
   el.loadSaved.addEventListener("click", loadSavedResult);
@@ -796,6 +921,7 @@ function bindEvents() {
   });
   el.addSeries.addEventListener("click", addSeries);
   el.downloadCsv.addEventListener("click", downloadCsv);
+  el.downloadAllCsv.addEventListener("click", downloadAllCsv);
   el.downloadFigure.addEventListener("click", downloadFigure);
   el.apiBase.addEventListener("change", () => localStorage.setItem("degeApiBase", el.apiBase.value.trim()));
 }
@@ -804,6 +930,7 @@ async function initialize() {
   renderControls();
   renderPolicyPointRows();
   bindEvents();
+  if (window.matchMedia("(max-width: 560px)").matches) el.parametersDetails.open = false;
   el.apiBase.value = localStorage.getItem("degeApiBase") || "";
   updateScenarioControls();
   await loadSavedResult();

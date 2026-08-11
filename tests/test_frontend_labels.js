@@ -8,6 +8,7 @@ const resultPath = path.join(__dirname, "..", "web", "data", "saved_unilateral_1
 const result = JSON.parse(fs.readFileSync(resultPath, "utf8"));
 const appSource = fs.readFileSync(path.join(__dirname, "..", "web", "app.js"), "utf8");
 const htmlSource = fs.readFileSync(path.join(__dirname, "..", "web", "index.html"), "utf8");
+const cssSource = fs.readFileSync(path.join(__dirname, "..", "web", "styles.css"), "utf8");
 const names = result.variables.map((item) => item.name);
 const labels = names.map(economicLabel);
 
@@ -67,8 +68,44 @@ if (!appSource.includes('return preferred === "raw" ? "level" : preferred;')) {
   throw new Error("Automatic plotting and CSV export should replace internal raw defaults with economic levels.");
 }
 
-if (!htmlSource.includes("Initial Home gross tariff (τ₂₁)") || !htmlSource.includes("Initial Foreign gross tariff (τ₁₂)")) {
-  throw new Error("Initial tariff controls should identify the Home and Foreign tariff separately.");
+if (!htmlSource.includes("Initial Home tariff rate (%) (τ₂₁)") || !htmlSource.includes("Initial Foreign tariff rate (%) (τ₁₂)")) {
+  throw new Error("Initial Home and Foreign tariff controls should use percent rates.");
+}
+
+if (!appSource.includes("grossTariffFromPercent") || !appSource.includes("1 + rate / 100")) {
+  throw new Error("Percent tariff inputs should be converted to gross tariffs at the model boundary.");
+}
+
+if (!htmlSource.includes('id="resultNotice"') || !appSource.includes("markResultsStale") || !appSource.includes("await loadSavedResult();")) {
+  throw new Error("Changed inputs should mark results stale and saved-preset changes should load matching results.");
+}
+
+if (!htmlSource.includes('id="downloadAllCsv"') || !htmlSource.includes("Plotted CSV") || !appSource.includes("downloadAllCsv")) {
+  throw new Error("The website should distinguish plotted-data and all-series CSV downloads.");
+}
+
+if (!appSource.includes("VARIABLE_GROUP_ORDER") || !appSource.includes('document.createElement("optgroup")')) {
+  throw new Error("The full variable catalog should be grouped into economic categories.");
+}
+
+if (!appSource.includes("scrollZoom: false") || appSource.includes("scrollZoom: true")) {
+  throw new Error("Chart wheel zoom should be disabled to protect page scrolling and prevent accidental zooms.");
+}
+
+if (!appSource.includes('return "Mixed units (see legend)"') || !appSource.includes('return "Tariff rate (%)"')) {
+  throw new Error("Chart axes should use economic unit titles.");
+}
+
+if (!htmlSource.includes("mobile-results-link") || !appSource.includes('matchMedia("(max-width: 560px)")')) {
+  throw new Error("Mobile users should receive collapsed parameters and a direct results link.");
+}
+
+if (!cssSource.includes("max-width: 1320px") || !cssSource.includes(".result-notice")) {
+  throw new Error("Intermediate-width overflow and stale-result messaging should have responsive styles.");
+}
+
+if ((htmlSource.match(/class="info-tip"/g) || []).length !== 3 || !cssSource.includes(".info-tip:focus::after")) {
+  throw new Error("All three economic summary metrics should provide accessible definition tooltips.");
 }
 
 if (!htmlSource.includes("Open PowerShell in the downloaded project folder") || !htmlSource.includes("use <code>cd</code>")) {

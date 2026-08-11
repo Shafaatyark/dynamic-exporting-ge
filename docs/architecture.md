@@ -42,7 +42,7 @@ The Python code contains no economic equations. It writes a normalized JSON requ
 
 ## Result timing
 
-Every solve uses 80 transition periods and returns 82 series observations: initial steady state, 80 transition observations, and terminal steady state. `tariffPaths` records the initial gross tariff plus the 80 prescribed values; the `tau21` and `tau12` solver series additionally contain the terminal observation. The frontend's **Periods plotted** control only changes the displayed and downloaded range; it never reruns the model.
+Every solve uses 80 transition periods and returns 82 series observations: initial steady state, 80 transition observations, and terminal steady state. `tariffPaths` records the initial gross tariff plus the 80 prescribed values; the `tau21` and `tau12` solver series additionally contain the terminal observation. The frontend's **Periods plotted** control changes the chart and **Plotted CSV** range without rerunning the model. **All series CSV** always exports every returned series over the full solved horizon.
 
 ## Saved versus live state
 

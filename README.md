@@ -10,7 +10,7 @@ The public scope is deliberately narrow:
 - unilateral, bilateral, and custom exogenous tariff paths;
 - policy-point custom paths with percent-rate inputs, step or linear interpolation, and a Plotly preview;
 - all macro and model series returned by Dynare;
-- interactive Plotly charts and CSV/SVG downloads.
+- interactive Plotly charts, plotted-data CSV/SVG downloads, and a full-horizon all-series CSV export.
 
 It does **not** include optimal tariffs, optimal policy paths, one-shot or sequence-space optimization, optimization-only routines, paper figures or tables, or private research results.
 
